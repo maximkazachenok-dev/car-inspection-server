@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Осмотр авто</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f0f2f5;
+    min-height: 100vh;
+    color: #1a1a2e;
+  }
+
+  .header {
+    background: #1a1a2e;
+    color: white;
+    padding: 16px 20px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .screen { display: none; padding: 20px; max-width: 480px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  /* === ЭКРАН 1: Данные водителя === */
+  .card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+  }
+
+  label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 6px;
+    margin-top: 16px;
+  }
+  label:first-of-type { margin-top: 0; }
+
+  input[type="text"], input[type="date"] {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid #e8e8e8;
+    border-radius: 10px;
+    font-size: 16px;
+    color: #1a1a2e;
+    outline: none;
+    transition: border-color 0.2s;
+    background: #fafafa;
+    -webkit-appearance: none;
+  }
+  input:focus { border-color: #1a1a2e; background: white; }
+
+  .type-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  .type-btn {
+    padding: 16px 10px;
+    border: 2px solid #e8e8e8;
+    border-radius: 10px;
+    background: #fafafa;
+    font-size: 15px;
+    font-weight: 600;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .type-btn.selected {
+    border-color: #1a1a2e;
+    background: #1a1a2e;
+    color: white;
+  }
+
+  .btn-main {
+    width: 100%;
+    padding: 18px;
+    background: #1a1a2e;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity 0.2s, transform 0.1s;
+    letter-spacing: 0.3px;
+  }
+  .btn-main:active { transform: scale(0.98); opacity: 0.9; }
+  .btn-main:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+
+  .btn-success {
+    background: #16a34a;
+  }
+
+  /* === ЭКРАН 2: Фото === */
+  .photo-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .photo-item {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .photo-item:active { transform: scale(0.99); }
+
+  .photo-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 12px;
+    background: #f0f2f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .photo-item.done .photo-icon {
+    background: #dcfce7;
+  }
+
+  .photo-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a2e;
+    flex: 1;
+  }
+
+  .photo-status {
+    font-size: 13px;
+    color: #aaa;
+    margin-top: 2px;
+  }
+  .photo-item.done .photo-status {
+    color: #16a34a;
+    font-weight: 600;
+  }
+
+  .check-mark {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #e8e8e8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .photo-item.done .check-mark {
+    background: #16a34a;
+    color: white;
+  }
+
+  input[type="file"] { display: none; }
+
+  .preview-thumb {
+    width: 54px;
+    height: 54px;
+    border-radius: 12px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  .progress-bar {
+    background: white;
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .progress-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    white-space: nowrap;
+  }
+  .progress-track {
+    flex: 1;
+    height: 6px;
+    background: #e8e8e8;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: #1a1a2e;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+
+  .info-banner {
+    background: #eff6ff;
+    border: 1.5px solid #bfdbfe;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    color: #1e40af;
+    line-height: 1.4;
+  }
+  .info-banner strong { display: block; margin-bottom: 2px; }
+
+  /* === ЭКРАН 3: Отправка === */
+  .result-card {
+    background: white;
+    border-radius: 16px;
+    padding: 32px 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .result-icon { font-size: 64px; margin-bottom: 16px; }
+  .result-title { font-size: 22px; font-weight: 800; color: #1a1a2e; margin-bottom: 8px; }
+  .result-sub { font-size: 15px; color: #777; line-height: 1.5; }
+
+  .spinner {
+    width: 48px; height: 48px;
+    border: 4px solid #e8e8e8;
+    border-top-color: #1a1a2e;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .summary-box {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 16px 0;
+    text-align: left;
+    font-size: 14px;
+    line-height: 1.8;
+    color: #444;
+  }
+  .summary-box strong { color: #1a1a2e; }
+</style>
+</head>
+<body>
+
+<div class="header">🚛 Осмотр автомобиля</div>
+
+<!-- ЭКРАН 1: Данные -->
+<div class="screen active" id="screen1">
+  <div style="height: 16px"></div>
+
+  <div class="card">
+    <div class="card-title">Данные водителя</div>
+
+    <label>ФИО водителя</label>
+    <input type="text" id="fio" placeholder="Петров Андрей Анатольевич" autocomplete="name">
+
+    <label>Гос. номер авто</label>
+    <input type="text" id="gosnomer" placeholder="АХ5463-5" style="text-transform:uppercase">
+
+    <label>Дата осмотра</label>
+    <input type="date" id="date">
+
+    <label>Тип осмотра</label>
+    <div class="type-buttons">
+      <div class="type-btn" id="btn-priem" onclick="selectType('приёмка')">📥 Приёмка</div>
+      <div class="type-btn" id="btn-sdacha" onclick="selectType('сдача')">📤 Сдача</div>
+    </div>
+  </div>
+
+  <button class="btn-main" onclick="goToPhotos()">Продолжить →</button>
+</div>
+
+<!-- ЭКРАН 2: Фото -->
+<div class="screen" id="screen2">
+  <div style="height: 16px"></div>
+
+  <div class="info-banner">
+    <strong id="banner-info"></strong>
+    Сделайте фото каждой зоны. Нажмите на строку — откроется камера.
+  </div>
+
+  <div class="progress-bar">
+    <span class="progress-text" id="progress-text">0 из 6</span>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="photo-grid">
+    <div class="photo-item" id="item-front" onclick="openCamera('front')">
+      <div class="photo-icon" id="icon-front">🚗</div>
+      <div style="flex:1">
+        <div class="photo-label">Спереди</div>
+        <div class="photo-status" id="status-front">Нажмите чтобы сфотографировать</div>
+      </div>
+      <div class="check-mark" id="check-front">—</div>
+    </div>
+
+    <div class="photo-item" id="item-back" onclick="openCamera('back')">
+      <div class="photo-icon" id="icon-back">🚗</div>
+      <div style="flex:1">
+        <div class="photo-label">Сзади</div>
+        <div class="photo-status" id="status-back">Нажмите чтобы сфотографировать</div>
+      </div>
+      <div class="check-mark" id="check-back">—</div>
+    </div>
+
+    <div class="photo-item" id="item-left" onclick="openCamera('left')">
+      <div class="photo-icon" id="icon-left">◀️</div>
+      <div style="flex:1">
+        <div class="photo-label">Левый бок</div>
+        <div class="photo-status" id="status-left">Нажмите чтобы сфотографировать</div>
+      </div>
+      <div class="check-mark" id="check-left">—</div>
+    </div>
+
+    <div class="photo-item" id="item-right" onclick="openCamera('right')">
+      <div class="photo-icon" id="icon-right">▶️</div>
+      <div style="flex:1">
+        <div class="photo-label">Правый бок</div>
+        <div class="photo-status" id="status-right">Нажмите чтобы сфотографировать</div>
+      </div>
+      <div class="check-mark" id="check-right">—</div>
+    </div>
+
+    <div class="photo-item" id="item-salon" onclick="openCamera('salon')">
+      <div class="photo-icon" id="icon-salon">🪑</div>
+      <div style="flex:1">
+        <div class="photo-label">Салон</div>
+        <div class="photo-status" id="status-salon">Нажмите чтобы сфотографировать</div>
+      </div>
+      <div class="check-mark" id="check-salon">—</div>
+    </div>
+
+    <div class="photo-item" id="item-sleep" onclick="openCamera('sleep')">
+      <div class="photo-icon" id="icon-sleep">🛏️</div>
+      <div style="flex:1">
+        <div class="photo-label">Спальник</div>
+        <div class="photo-status" id="status-sleep">Нажмите чтобы сфотографировать</div>
+      </div>
+      <div class="check-mark" id="check-sleep">—</div>
+    </div>
+  </div>
+
+  <div style="height: 16px"></div>
+  <button class="btn-main btn-success" id="btn-send" onclick="sendReport()" disabled>
+    ✅ Завершить осмотр
+  </button>
+  <div style="height: 20px"></div>
+
+  <!-- Скрытые input для камеры -->
+  <input type="file" id="cam-front" accept="image/*" capture="environment" onchange="photoTaken('front', this)">
+  <input type="file" id="cam-back"  accept="image/*" capture="environment" onchange="photoTaken('back',  this)">
+  <input type="file" id="cam-left"  accept="image/*" capture="environment" onchange="photoTaken('left',  this)">
+  <input type="file" id="cam-right" accept="image/*" capture="environment" onchange="photoTaken('right', this)">
+  <input type="file" id="cam-salon" accept="image/*" capture="environment" onchange="photoTaken('salon', this)">
+  <input type="file" id="cam-sleep" accept="image/*" capture="environment" onchange="photoTaken('sleep', this)">
+</div>
+
+<!-- ЭКРАН 3: Отправка / Результат -->
+<div class="screen" id="screen3">
+  <div style="height: 40px"></div>
+  <div class="result-card" id="result-card">
+    <div class="spinner"></div>
+    <div class="result-title">Отправляем...</div>
+    <div class="result-sub">Пожалуйста, не закрывайте приложение</div>
+  </div>
+</div>
+
+<script>
+  // ======= НАСТРОЙКА =======
+  // Замените на адрес вашего сервера после деплоя
+  const SERVER_URL = 'https://maximkazachenok-dev.github.io/car-inspection-server/';
+  // =========================
+
+  let selectedType = '';
+  const photos = {};
+
+  // Установить сегодняшнюю дату
+  const today = new Date();
+  const dd = String(today.getDate()).padStart(2, '0');
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const yyyy = today.getFullYear();
+  document.getElementById('date').value = `${yyyy}-${mm}-${dd}`;
+
+  function selectType(type) {
+    selectedType = type;
+    document.getElementById('btn-priem').classList.toggle('selected', type === 'приёмка');
+    document.getElementById('btn-sdacha').classList.toggle('selected', type === 'сдача');
+  }
+
+  function goToPhotos() {
+    const fio = document.getElementById('fio').value.trim();
+    const gos = document.getElementById('gosnomer').value.trim();
+    const date = document.getElementById('date').value;
+
+    if (!fio) { alert('Введите ФИО водителя'); return; }
+    if (!gos) { alert('Введите гос. номер'); return; }
+    if (!selectedType) { alert('Выберите тип осмотра: Приёмка или Сдача'); return; }
+
+    // Форматируем дату для отображения
+    const [y, m, d] = date.split('-');
+    const dateStr = `${d}.${m}.${y}`;
+
+    document.getElementById('banner-info').textContent =
+      `${fio} • ${gos.toUpperCase()} • ${selectedType} • ${dateStr}`;
+
+    showScreen('screen2');
+  }
+
+  function openCamera(zone) {
+    document.getElementById('cam-' + zone).click();
+  }
+
+  function photoTaken(zone, input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    photos[zone] = file;
+
+    // Обновить превью
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const icon = document.getElementById('icon-' + zone);
+      icon.innerHTML = `<img src="${e.target.result}" class="preview-thumb" alt="">`;
+    };
+    reader.readAsDataURL(file);
+
+    document.getElementById('item-' + zone).classList.add('done');
+    document.getElementById('status-' + zone).textContent = '✓ Фото сделано';
+    document.getElementById('check-' + zone).textContent = '✓';
+
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const count = Object.keys(photos).length;
+    const total = 6;
+    document.getElementById('progress-text').textContent = `${count} из ${total}`;
+    document.getElementById('progress-fill').style.width = `${(count / total) * 100}%`;
+    document.getElementById('btn-send').disabled = (count < total);
+  }
+
+  async function sendReport() {
+    showScreen('screen3');
+
+    const fio = document.getElementById('fio').value.trim();
+    const gos = document.getElementById('gosnomer').value.trim().toUpperCase();
+    const dateVal = document.getElementById('date').value;
+    const [y, m, d] = dateVal.split('-');
+    const dateStr = `${d}.${m}.${y}`;
+
+    const formData = new FormData();
+    formData.append('fio', fio);
+    formData.append('gosnomer', gos);
+    formData.append('type', selectedType);
+    formData.append('date', dateStr);
+
+    const zones = { front: 'Спереди', back: 'Сзади', left: 'Левый бок', right: 'Правый бок', salon: 'Салон', sleep: 'Спальник' };
+    for (const [key, label] of Object.entries(zones)) {
+      if (photos[key]) formData.append(key, photos[key], `${label}.jpg`);
+    }
+
+    try {
+      const response = await fetch(SERVER_URL, { method: 'POST', body: formData });
+      const result = await response.json();
+
+      if (result.ok) {
+        showSuccess(fio, gos, dateStr);
+      } else {
+        showError(result.error || 'Неизвестная ошибка');
+      }
+    } catch (e) {
+      showError('Нет соединения с сервером. Проверьте интернет.');
+    }
+  }
+
+  function showSuccess(fio, gos, date) {
+    document.getElementById('result-card').innerHTML = `
+      <div class="result-icon">✅</div>
+      <div class="result-title">Осмотр отправлен!</div>
+      <div class="summary-box">
+        <strong>${fio}</strong>
+        ${gos} • ${selectedType} • ${date}
+      </div>
+      <div class="result-sub">Акт и фотографии отправлены в Telegram.</div>
+    `;
+    setTimeout(() => {
+      document.getElementById('result-card').innerHTML += `
+        <button class="btn-main" style="margin-top:24px" onclick="resetApp()">Новый осмотр</button>
+      `;
+    }, 500);
+  }
+
+  function showError(msg) {
+    document.getElementById('result-card').innerHTML = `
+      <div class="result-icon">❌</div>
+      <div class="result-title">Ошибка отправки</div>
+      <div class="result-sub" style="color:#dc2626;margin-bottom:20px">${msg}</div>
+      <button class="btn-main" onclick="showScreen('screen2')">← Назад</button>
+    `;
+  }
+
+  function resetApp() {
+    Object.keys(photos).forEach(k => delete photos[k]);
+    selectedType = '';
+    document.getElementById('fio').value = '';
+    document.getElementById('gosnomer').value = '';
+    document.getElementById('btn-priem').classList.remove('selected');
+    document.getElementById('btn-sdacha').classList.remove('selected');
+
+    const zones = ['front','back','left','right','salon','sleep'];
+    zones.forEach(z => {
+      document.getElementById('item-' + z).classList.remove('done');
+      document.getElementById('status-' + z).textContent = 'Нажмите чтобы сфотографировать';
+      document.getElementById('check-' + z).textContent = '—';
+      document.getElementById('icon-' + z).innerHTML = ['front','back'].includes(z) ? '🚗' : z === 'left' ? '◀️' : z === 'right' ? '▶️' : z === 'salon' ? '🪑' : '🛏️';
+      document.getElementById('cam-' + z).value = '';
+    });
+
+    document.getElementById('date').value = `${yyyy}-${mm}-${dd}`;
+    updateProgress();
+    showScreen('screen1');
+  }
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+</script>
+</body>
+</html>
