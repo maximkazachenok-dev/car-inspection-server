@@ -2,7 +2,7 @@
   "name": "Осмотр автомобиля",
   "short_name": "Осмотр ТС",
   "description": "Приём и передача транспортного средства",
-  "start_url": "/",
+  "start_url": "/car-inspection-server/",
   "display": "standalone",
   "background_color": "#1a1a2e",
   "theme_color": "#1a1a2e",
