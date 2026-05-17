@@ -38,13 +38,17 @@ def submit():
         if not all([fio, gosnomer, type_, date]):
             return jsonify({'ok': False, 'error': 'Не все поля заполнены'}), 400
 
+        mileage  = request.form.get('mileage', '').strip()
+
         # Текстовое сообщение — заголовок акта
+        mileage_str = f"{int(mileage):,}".replace(',', ' ') + ' км' if mileage else '—'
         caption = (
             f"🚛 *ОСМОТР АВТОМОБИЛЯ*\n\n"
             f"👤 {fio}\n"
             f"🔢 {gosnomer}\n"
             f"📋 {type_.upper()}\n"
-            f"📅 {date}"
+            f"📅 {date}\n"
+            f"🛣 Пробег: {mileage_str}"
         )
 
         # Собираем медиагруппу (до 10 фото)
