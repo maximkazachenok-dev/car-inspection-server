@@ -85,6 +85,20 @@
   .install-text { font-size: 13px; line-height: 1.3; flex: 1; }
   .install-btn { background: #4a9eff; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
   .install-close { background: none; border: none; color: #aaa; font-size: 20px; cursor: pointer; padding: 0 4px; }
+
+  /* Кнопка базы в заголовке */
+  .header-wrap { position: relative; }
+  .btn-db-small { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .btn-db-small:active { background: rgba(255,255,255,0.25); }
+
+  /* Модальное окно базы */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: white; border-radius: 20px; padding: 24px; width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+  .modal-title { font-size: 16px; font-weight: 700; color: #1a1a2e; margin-bottom: 8px; }
+  .modal-desc { font-size: 13px; color: #777; margin-bottom: 16px; line-height: 1.5; }
+  .modal-count { display: inline-block; background: #1e40af; color: white; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 20px; margin-bottom: 16px; }
+  .modal-close { width: 100%; padding: 14px; background: #f0f2f5; color: #1a1a2e; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -95,21 +109,27 @@
   <button class="install-close" onclick="document.getElementById('install-banner').classList.remove('show')">×</button>
 </div>
 
-<div class="header">🚛 Осмотр автомобиля</div>
+<div class="header-wrap">
+  <div class="header">🚛 Осмотр автомобиля
+    <button class="btn-db-small" onclick="openDbModal()">📋 База</button>
+  </div>
+</div>
+
+<!-- Модальное окно базы -->
+<div class="modal-overlay" id="db-modal" onclick="if(event.target===this)closeDbModal()">
+  <div class="modal-box">
+    <div class="modal-title">📋 База водителей и ТС</div>
+    <div class="modal-desc">Загрузите Excel или CSV файл.<br>Колонка 1 — ФИО, Колонка 2 — Гос. номер</div>
+    <div class="modal-count" id="db-count">0 записей</div>
+    <button class="btn-upload" onclick="document.getElementById('db-file').click()">📂 Загрузить список (Excel / CSV)</button>
+    <input type="file" id="db-file" accept=".csv,.xlsx,.xls" onchange="loadDatabase(this)">
+    <button class="modal-close" onclick="closeDbModal()">Закрыть</button>
+  </div>
+</div>
 
 <!-- ЭКРАН 1 -->
 <div class="screen active" id="screen1">
   <div style="height:16px"></div>
-
-  <div class="db-card">
-    <div class="db-header">
-      <span class="db-title">📋 База водителей и ТС</span>
-      <span class="db-count" id="db-count">0 записей</span>
-    </div>
-    <div class="db-desc">Загрузите Excel или CSV: колонка 1 — ФИО, колонка 2 — Гос. номер</div>
-    <button class="btn-upload" onclick="document.getElementById('db-file').click()">📂 Загрузить список (Excel / CSV)</button>
-    <input type="file" id="db-file" accept=".csv,.xlsx,.xls" onchange="loadDatabase(this)">
-  </div>
 
   <div class="card">
     <div class="card-title">Данные водителя</div>
@@ -314,20 +334,17 @@ function acSearch(field) {
   const escaped = val.replace(/[-[\]{}()*+?.,\\^$|#\s]/g,'\\$&');
   list.innerHTML = matches.map(d => {
     const main = field === 'fio' ? d.fio : d.gosnomer;
-    const sub  = field === 'fio' ? d.gosnomer : d.fio;
     const hi   = main.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
-    const fioE = d.fio.replace(/'/g,"\\'");
-    const gosE = d.gosnomer.replace(/'/g,"\\'");
-    return `<div class="autocomplete-item" onmousedown="acSelect('${fioE}','${gosE}')">
-      ${hi}<div class="autocomplete-sub">${sub}</div>
+    const mainE = main.replace(/'/g,"\\'");
+    return `<div class="autocomplete-item" onmousedown="acSelect('${field}','${mainE}')">
+      ${hi}
     </div>`;
   }).join('');
   list.classList.add('open');
 }
 
-function acSelect(fio, gosnomer) {
-  document.getElementById('fio').value = fio;
-  document.getElementById('gosnomer').value = gosnomer;
+function acSelect(field, value) {
+  document.getElementById(field).value = value;
   document.getElementById('ac-fio').classList.remove('open');
   document.getElementById('ac-gosnomer').classList.remove('open');
 }
@@ -461,6 +478,14 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo(0,0);
+}
+
+// ===== МОДАЛЬНОЕ ОКНО БАЗЫ =====
+function openDbModal() {
+  document.getElementById('db-modal').classList.add('open');
+}
+function closeDbModal() {
+  document.getElementById('db-modal').classList.remove('open');
 }
 
 // ===== PWA =====
