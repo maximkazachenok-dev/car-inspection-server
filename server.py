@@ -3,6 +3,8 @@ import json
 import uuid
 import base64
 import requests
+from io import BytesIO
+from PIL import Image
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -88,6 +90,32 @@ def get_inspection_from_db(gosnomer, date):
 
 # ===== CLAUDE AI =====
 
+def compress_image(img_bytes, max_size_kb=3000, max_dimension=1920):
+    """Сжимает изображение до допустимого размера для Claude API."""
+    try:
+        img = Image.open(BytesIO(img_bytes))
+        # Конвертируем в RGB если нужно
+        if img.mode not in ('RGB', 'L'):
+            img = img.convert('RGB')
+        # Уменьшаем размер если слишком большое
+        w, h = img.size
+        if w > max_dimension or h > max_dimension:
+            ratio = min(max_dimension/w, max_dimension/h)
+            img = img.resize((int(w*ratio), int(h*ratio)), Image.LANCZOS)
+        # Сжимаем до нужного размера
+        quality = 85
+        while quality >= 40:
+            buf = BytesIO()
+            img.save(buf, format='JPEG', quality=quality, optimize=True)
+            if buf.tell() <= max_size_kb * 1024:
+                return buf.getvalue()
+            quality -= 10
+        return buf.getvalue()
+    except Exception as e:
+        print(f'Compress error: {e}')
+        return img_bytes
+
+
 def analyze_photos_with_ai(photo_bytes_dict):
     """Анализирует фото осмотра через Claude API. Возвращает текст отчёта."""
     if not ANTHROPIC_KEY:
@@ -108,7 +136,8 @@ def analyze_photos_with_ai(photo_bytes_dict):
     for zone in ZONE_ORDER:
         if zone not in photo_bytes_dict:
             continue
-        img_b64 = base64.standard_b64encode(photo_bytes_dict[zone]).decode('utf-8')
+        compressed = compress_image(photo_bytes_dict[zone])
+        img_b64 = base64.standard_b64encode(compressed).decode('utf-8')
         content.append({
             'type': 'text',
             'text': f'Зона: {ZONE_LABELS[zone]}'
