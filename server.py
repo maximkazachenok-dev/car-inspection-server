@@ -160,7 +160,7 @@ def analyze_photos_with_ai(photo_bytes_dict):
                 'content-type': 'application/json',
             },
             json={
-                'model': 'claude-opus-4-5',
+                'model': 'claude-haiku-4-5-20251001',
                 'max_tokens': 1024,
                 'messages': [{'role': 'user', 'content': content}]
             },
@@ -222,7 +222,7 @@ def compare_inspections_with_ai(insp1, insp2):
                 'content-type': 'application/json',
             },
             json={
-                'model': 'claude-opus-4-5',
+                'model': 'claude-haiku-4-5-20251001',
                 'max_tokens': 2048,
                 'messages': [{'role': 'user', 'content': content}]
             },
