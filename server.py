@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import base64
 import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -9,10 +10,11 @@ app = Flask(__name__)
 CORS(app)
 
 # ======= НАСТРОЙКИ =======
-BOT_TOKEN     = os.environ.get('BOT_TOKEN', '')
-CHAT_ID       = os.environ.get('CHAT_ID', '')
-SUPABASE_URL  = os.environ.get('SUPABASE_URL', '')
-SUPABASE_KEY  = os.environ.get('SUPABASE_KEY', '')
+BOT_TOKEN      = os.environ.get('BOT_TOKEN', '')
+CHAT_ID        = os.environ.get('CHAT_ID', '')
+SUPABASE_URL   = os.environ.get('SUPABASE_URL', '')
+SUPABASE_KEY   = os.environ.get('SUPABASE_KEY', '')
+ANTHROPIC_KEY  = os.environ.get('ANTHROPIC_KEY', '')
 # =========================
 
 TELEGRAM_API  = f'https://api.telegram.org/bot{BOT_TOKEN}'
@@ -35,13 +37,15 @@ ZONE_LABELS = {
     'sleep': 'Спальник',
 }
 
+
 @app.route('/', methods=['GET'])
 def health():
     return 'OK', 200
 
 
+# ===== SUPABASE =====
+
 def upload_photo_to_supabase(file_bytes, filename):
-    """Загружает фото в Supabase Storage, возвращает публичный URL."""
     url = f'{SUPABASE_STOR}/object/inspection-photos/{filename}'
     headers = {
         'apikey': SUPABASE_KEY,
@@ -50,24 +54,225 @@ def upload_photo_to_supabase(file_bytes, filename):
     }
     resp = requests.post(url, data=file_bytes, headers=headers, timeout=30)
     if resp.status_code in (200, 201):
-        public_url = f'{SUPABASE_STOR}/object/public/inspection-photos/{filename}'
-        return public_url
-    else:
-        print(f'Supabase upload error: {resp.status_code} {resp.text}')
-        return None
+        return f'{SUPABASE_STOR}/object/public/inspection-photos/{filename}'
+    print(f'Supabase upload error: {resp.status_code} {resp.text}')
+    return None
 
 
 def save_inspection_to_db(record):
-    """Сохраняет запись осмотра в таблицу inspections."""
     url = f'{SUPABASE_REST}/inspections'
     headers = {**SUPABASE_HEADERS, 'Prefer': 'return=representation'}
     resp = requests.post(url, json=record, headers=headers, timeout=15)
     if resp.status_code in (200, 201):
         return True
-    else:
-        print(f'Supabase DB error: {resp.status_code} {resp.text}')
-        return False
+    print(f'Supabase DB error: {resp.status_code} {resp.text}')
+    return False
 
+
+def get_inspection_from_db(gosnomer, date):
+    """Ищет осмотр по гос. номеру и дате."""
+    url = f'{SUPABASE_REST}/inspections'
+    params = {
+        'gosnomer': f'eq.{gosnomer.upper()}',
+        'inspection_date': f'eq.{date}',
+        'order': 'created_at.desc',
+        'limit': '1',
+    }
+    headers = {**SUPABASE_HEADERS}
+    resp = requests.get(url, params=params, headers=headers, timeout=15)
+    if resp.status_code == 200:
+        data = resp.json()
+        return data[0] if data else None
+    return None
+
+
+# ===== CLAUDE AI =====
+
+def analyze_photos_with_ai(photo_bytes_dict):
+    """Анализирует фото осмотра через Claude API. Возвращает текст отчёта."""
+    if not ANTHROPIC_KEY:
+        return None
+
+    content = [{
+        'type': 'text',
+        'text': (
+            'Ты эксперт по осмотру грузовых автомобилей. '
+            'Проанализируй фотографии транспортного средства и найди видимые повреждения: '
+            'царапины, вмятины, трещины, сколы, загрязнения, неисправности. '
+            'Для каждой зоны напиши одну строку: есть ли повреждения и какие именно. '
+            'Если повреждений нет — напиши "без повреждений". '
+            'Отвечай только на русском языке, кратко и по делу.'
+        )
+    }]
+
+    for zone in ZONE_ORDER:
+        if zone not in photo_bytes_dict:
+            continue
+        img_b64 = base64.standard_b64encode(photo_bytes_dict[zone]).decode('utf-8')
+        content.append({
+            'type': 'text',
+            'text': f'Зона: {ZONE_LABELS[zone]}'
+        })
+        content.append({
+            'type': 'image',
+            'source': {
+                'type': 'base64',
+                'media_type': 'image/jpeg',
+                'data': img_b64,
+            }
+        })
+
+    try:
+        resp = requests.post(
+            'https://api.anthropic.com/v1/messages',
+            headers={
+                'x-api-key': ANTHROPIC_KEY,
+                'anthropic-version': '2023-06-01',
+                'content-type': 'application/json',
+            },
+            json={
+                'model': 'claude-opus-4-5',
+                'max_tokens': 1024,
+                'messages': [{'role': 'user', 'content': content}]
+            },
+            timeout=60
+        )
+        if resp.status_code == 200:
+            return resp.json()['content'][0]['text']
+        print(f'Claude API error: {resp.status_code} {resp.text}')
+        return None
+    except Exception as e:
+        print(f'Claude API exception: {e}')
+        return None
+
+
+def compare_inspections_with_ai(insp1, insp2):
+    """Сравнивает два осмотра через Claude API. Возвращает текст сравнения."""
+    if not ANTHROPIC_KEY:
+        return 'ANTHROPIC_KEY не настроен.'
+
+    content = [{'type': 'text', 'text': (
+        'Ты эксперт по осмотру грузовых автомобилей. '
+        f'Сравни два осмотра одного транспортного средства {insp1["gosnomer"]}.\n'
+        f'Осмотр 1 (старый): {insp1["inspection_date"]}\n'
+        f'Осмотр 2 (новый): {insp2["inspection_date"]}\n\n'
+        'Для каждой зоны определи: появились ли новые повреждения, исчезли ли старые, или изменений нет. '
+        'В конце дай общий вывод. Отвечай на русском языке.'
+    )}]
+
+    # Добавляем фото обоих осмотров
+    for zone in ZONE_ORDER:
+        zone_col = f'photo_{zone}'
+        url1 = insp1.get(zone_col)
+        url2 = insp2.get(zone_col)
+        if not url1 or not url2:
+            continue
+
+        content.append({'type': 'text', 'text': f'\n--- Зона: {ZONE_LABELS[zone]} ---'})
+
+        for label, url in [(f'Осмотр от {insp1["inspection_date"]}', url1),
+                           (f'Осмотр от {insp2["inspection_date"]}', url2)]:
+            try:
+                img_resp = requests.get(url, timeout=20)
+                if img_resp.status_code == 200:
+                    img_b64 = base64.standard_b64encode(img_resp.content).decode('utf-8')
+                    content.append({'type': 'text', 'text': label})
+                    content.append({
+                        'type': 'image',
+                        'source': {'type': 'base64', 'media_type': 'image/jpeg', 'data': img_b64}
+                    })
+            except Exception as e:
+                print(f'Error fetching photo {url}: {e}')
+
+    try:
+        resp = requests.post(
+            'https://api.anthropic.com/v1/messages',
+            headers={
+                'x-api-key': ANTHROPIC_KEY,
+                'anthropic-version': '2023-06-01',
+                'content-type': 'application/json',
+            },
+            json={
+                'model': 'claude-opus-4-5',
+                'max_tokens': 2048,
+                'messages': [{'role': 'user', 'content': content}]
+            },
+            timeout=120
+        )
+        if resp.status_code == 200:
+            return resp.json()['content'][0]['text']
+        print(f'Claude compare error: {resp.status_code} {resp.text}')
+        return 'Ошибка при обращении к ИИ.'
+    except Exception as e:
+        print(f'Claude compare exception: {e}')
+        return f'Ошибка: {e}'
+
+
+def send_telegram_message(chat_id, text):
+    requests.post(
+        f'{TELEGRAM_API}/sendMessage',
+        json={'chat_id': chat_id, 'text': text, 'parse_mode': 'Markdown'},
+        timeout=15
+    )
+
+
+# ===== WEBHOOK — команды от диспетчера =====
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    """Обрабатывает команды диспетчера в Telegram."""
+    try:
+        data = request.json
+        message = data.get('message', {})
+        text = message.get('text', '').strip()
+        chat_id = message.get('chat', {}).get('id')
+
+        if not text or not chat_id:
+            return jsonify({'ok': True})
+
+        # Команда: сравни АХ5463-5 01.05.2026 и 01.04.2026
+        if text.lower().startswith('сравни'):
+            parts = text.split()
+            # Формат: сравни ГОС_НОМЕР ДАТА1 и ДАТА2
+            if len(parts) >= 4 and 'и' in parts:
+                gosnomer = parts[1]
+                idx = parts.index('и')
+                date1 = parts[2] if idx > 2 else None
+                date2 = parts[idx + 1] if idx + 1 < len(parts) else None
+
+                if not date1 or not date2:
+                    send_telegram_message(chat_id,
+                        '⚠️ Формат команды:\n`сравни АХ5463-5 01.05.2026 и 01.04.2026`')
+                    return jsonify({'ok': True})
+
+                send_telegram_message(chat_id, f'🔍 Ищу осмотры {gosnomer}...')
+
+                insp1 = get_inspection_from_db(gosnomer, date1)
+                insp2 = get_inspection_from_db(gosnomer, date2)
+
+                if not insp1:
+                    send_telegram_message(chat_id, f'❌ Осмотр {gosnomer} от {date1} не найден в базе.')
+                    return jsonify({'ok': True})
+                if not insp2:
+                    send_telegram_message(chat_id, f'❌ Осмотр {gosnomer} от {date2} не найден в базе.')
+                    return jsonify({'ok': True})
+
+                send_telegram_message(chat_id, '🤖 Анализирую фото, подождите...')
+                result = compare_inspections_with_ai(insp2, insp1)  # старый, новый
+                send_telegram_message(chat_id,
+                    f'🔄 *СРАВНЕНИЕ ОСМОТРОВ {gosnomer}*\n'
+                    f'📅 {date2} → {date1}\n\n{result}')
+            else:
+                send_telegram_message(chat_id,
+                    '⚠️ Формат команды:\n`сравни АХ5463-5 01.05.2026 и 01.04.2026`')
+
+        return jsonify({'ok': True})
+    except Exception as e:
+        print(f'Webhook error: {e}')
+        return jsonify({'ok': True})
+
+
+# ===== ОСНОВНОЙ МАРШРУТ =====
 
 @app.route('/submit', methods=['POST'])
 def submit():
@@ -82,12 +287,10 @@ def submit():
             return jsonify({'ok': False, 'error': 'Не все поля заполнены'}), 400
 
         mileage_str = f"{int(mileage):,}".replace(',', ' ') + ' км' if mileage else '—'
-
-        # Уникальный ID осмотра
         inspection_id = str(uuid.uuid4())
         safe_gos = gosnomer.replace('/', '-').replace('\\', '-')
 
-        # ===== 1. Загружаем фото в Supabase Storage =====
+        # 1. Загружаем фото в Supabase Storage
         photo_urls = {}
         photo_bytes = {}
 
@@ -95,17 +298,18 @@ def submit():
             if zone not in request.files:
                 continue
             file = request.files[zone]
-            if not file or not file.filename:
+            if not file:
                 continue
             file_bytes = file.read()
+            if not file_bytes or len(file_bytes) < 100:
+                continue
             photo_bytes[zone] = file_bytes
-
             filename = f'{safe_gos}/{inspection_id}/{zone}.jpg'
             url = upload_photo_to_supabase(file_bytes, filename)
             if url:
                 photo_urls[zone] = url
 
-        # ===== 2. Сохраняем запись в БД =====
+        # 2. Сохраняем в БД
         db_record = {
             'id':              inspection_id,
             'fio':             fio,
@@ -122,7 +326,7 @@ def submit():
         }
         db_saved = save_inspection_to_db(db_record)
 
-        # ===== 3. Отправляем в Telegram =====
+        # 3. Отправляем в Telegram
         caption = (
             f"🚛 *ОСМОТР АВТОМОБИЛЯ*\n\n"
             f"👤 {fio}\n"
@@ -132,20 +336,16 @@ def submit():
             f"🛣 Пробег: {mileage_str}"
         )
         if db_saved:
-            caption += f"\n✅ _Сохранено в базе данных_"
+            caption += '\n✅ _Сохранено в базе данных_'
 
         media = []
         files_dict = {}
-
         for i, zone in enumerate(ZONE_ORDER):
             if zone not in photo_bytes:
                 continue
             attach_name = f'photo_{zone}'
             files_dict[attach_name] = (f'{zone}.jpg', photo_bytes[zone], 'image/jpeg')
-            media_item = {
-                'type': 'photo',
-                'media': f'attach://{attach_name}',
-            }
+            media_item = {'type': 'photo', 'media': f'attach://{attach_name}'}
             if i == 0:
                 media_item['caption'] = caption
                 media_item['parse_mode'] = 'Markdown'
@@ -154,27 +354,32 @@ def submit():
         if not media:
             return jsonify({'ok': False, 'error': 'Нет фотографий'}), 400
 
-        tg_data = {
-            'chat_id': CHAT_ID,
-            'media': json.dumps(media)
-        }
-
-        resp = requests.post(
+        tg_resp = requests.post(
             f'{TELEGRAM_API}/sendMediaGroup',
-            data=tg_data,
+            data={'chat_id': CHAT_ID, 'media': json.dumps(media)},
             files=files_dict,
             timeout=60
         )
+        tg_result = tg_resp.json()
 
-        tg_result = resp.json()
-        if tg_result.get('ok'):
-            return jsonify({'ok': True, 'db_saved': db_saved})
-        else:
-            print('Telegram error:', tg_result)
+        if not tg_result.get('ok'):
             return jsonify({'ok': False, 'error': 'Ошибка Telegram: ' + str(tg_result.get('description', ''))}), 500
 
+        # 4. ИИ-анализ (если ключ есть — запускаем)
+        if ANTHROPIC_KEY and photo_bytes:
+            ai_report = analyze_photos_with_ai(photo_bytes)
+            if ai_report:
+                ai_text = (
+                    f"🤖 *АНАЛИЗ ИИ*\n"
+                    f"*{gosnomer} • {type_} • {date}*\n\n"
+                    f"{ai_report}"
+                )
+                send_telegram_message(CHAT_ID, ai_text)
+
+        return jsonify({'ok': True, 'db_saved': db_saved})
+
     except Exception as e:
-        print('Server error:', e)
+        print(f'Server error: {e}')
         import traceback
         traceback.print_exc()
         return jsonify({'ok': False, 'error': str(e)}), 500
