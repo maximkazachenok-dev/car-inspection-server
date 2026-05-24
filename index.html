@@ -86,6 +86,89 @@
   .install-btn { background: #4a9eff; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
   .install-close { background: none; border: none; color: #aaa; font-size: 20px; cursor: pointer; padding: 0 4px; }
 
+  /* Блок проверки */
+  .check-section { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1.5px solid #f0f0f0; }
+  .check-section:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+  .check-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .check-title { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+
+  .info-btn {
+    position: relative;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: #e8e8e8;
+    border: none;
+    font-size: 12px;
+    font-weight: 700;
+    color: #555;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .info-btn:active { background: #d0d0d0; }
+
+  .info-popup {
+    display: none;
+    position: absolute;
+    top: 28px; left: 0;
+    background: white;
+    border: 1.5px solid #e8e8e8;
+    border-radius: 10px;
+    padding: 10px 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    z-index: 250;
+    width: 220px;
+    text-align: left;
+  }
+  .info-popup.open { display: block; }
+  .info-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #444; padding: 4px 0; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .dot.green  { background: #16a34a; }
+  .dot.yellow { background: #ca8a04; }
+  .dot.red    { background: #dc2626; }
+
+  .check-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .check-label { font-size: 15px; font-weight: 500; color: #1a1a2e; }
+
+  .check-icons { display: flex; gap: 10px; flex-shrink: 0; }
+  .check-icon {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 2px solid #e8e8e8;
+    background: #fafafa;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 6px;
+    transition: all 0.2s;
+    color: #bbb;
+  }
+  .check-icon svg { width: 20px; height: 20px; }
+  .check-icon:active { transform: scale(0.93); }
+
+  .check-icon.active-ok    { border-color: #16a34a; background: #dcfce7; color: #16a34a; }
+  .check-icon.active-warn  { border-color: #ca8a04; background: #fef9c3; color: #ca8a04; }
+  .check-icon.active-bad   { border-color: #dc2626; background: #fee2e2; color: #dc2626; }
+
+  .check-comment {
+    display: none;
+    width: 100%;
+    margin-top: 10px;
+    padding: 12px 14px;
+    border: 2px solid #e8e8e8;
+    border-radius: 10px;
+    font-size: 15px;
+    color: #1a1a2e;
+    background: #fafafa;
+    resize: none;
+    min-height: 80px;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s;
+  }
+  .check-comment:focus { border-color: #1a1a2e; background: white; }
+  .check-comment.show { display: block; }
+
   /* Кнопка базы в заголовке */
   .header-wrap { position: relative; }
   .btn-db-small { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
@@ -133,6 +216,45 @@
 
   <div class="card">
     <div class="card-title">Данные водителя</div>
+
+    <!-- Блок проверки -->
+    <div class="check-section">
+      <div class="check-header">
+        <span class="check-title">Выполните проверку</span>
+        <button class="info-btn" onclick="toggleInfoPopup(event)" aria-label="Подсказка">i
+          <div class="info-popup" id="info-popup">
+            <div class="info-row">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
+              <span>Всё хорошо</span>
+            </div>
+            <div class="info-row">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>Некритичные замечания</span>
+            </div>
+            <div class="info-row">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>Критичные замечания</span>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      <div class="check-row">
+        <span class="check-label">Проверка документов</span>
+        <div class="check-icons">
+          <button class="check-icon" id="doc-ok"    onclick="selectCheck('doc','ok')"    title="Всё хорошо">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
+          </button>
+          <button class="check-icon" id="doc-warn"  onclick="selectCheck('doc','warn')"  title="Некритичные замечания">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </button>
+          <button class="check-icon" id="doc-bad"   onclick="selectCheck('doc','bad')"   title="Критичные замечания">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </button>
+        </div>
+      </div>
+      <textarea class="check-comment" id="doc-comment" placeholder="Введите замечания по документам..."></textarea>
+    </div>
 
     <label>ФИО водителя</label>
     <div class="autocomplete-wrap">
@@ -446,6 +568,13 @@ async function sendReport() {
   formData.append('date', dateStr);
   formData.append('mileage', mileage);
 
+  // Данные проверки документов
+  if (checkState['doc']) {
+    formData.append('check_doc_status', checkState['doc']);
+    const comment = document.getElementById('doc-comment').value.trim();
+    if (comment) formData.append('check_doc_comment', comment);
+  }
+
   const zones = { front:'Спереди', back:'Сзади', left:'Левый бок', right:'Правый бок', salon:'Салон', sleep:'Спальник' };
   for (const [key, label] of Object.entries(zones)) {
     if (photos[key]) {
@@ -518,6 +647,38 @@ function openDbModal() {
 function closeDbModal() {
   document.getElementById('db-modal').classList.remove('open');
 }
+
+// ===== Блок проверки =====
+const checkState = {};
+
+function selectCheck(group, status) {
+  checkState[group] = status;
+  const ids = ['ok','warn','bad'];
+  ids.forEach(s => {
+    const btn = document.getElementById(`${group}-${s}`);
+    btn.classList.remove('active-ok','active-warn','active-bad');
+  });
+  document.getElementById(`${group}-${status}`).classList.add(`active-${status}`);
+
+  const comment = document.getElementById(`${group}-comment`);
+  if (status === 'warn' || status === 'bad') {
+    comment.classList.add('show');
+    comment.focus();
+  } else {
+    comment.classList.remove('show');
+    comment.value = '';
+  }
+}
+
+function toggleInfoPopup(e) {
+  e.stopPropagation();
+  const popup = document.getElementById('info-popup');
+  popup.classList.toggle('open');
+}
+document.addEventListener('click', () => {
+  const popup = document.getElementById('info-popup');
+  if (popup) popup.classList.remove('open');
+});
 
 // ===== Камера: capture только для Android =====
 (function() {

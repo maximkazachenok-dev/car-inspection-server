@@ -274,7 +274,9 @@ def submit():
         gosnomer = request.form.get('gosnomer', '').strip().upper()
         type_    = request.form.get('type', '').strip()
         date     = request.form.get('date', '').strip()
-        mileage  = request.form.get('mileage', '').strip()
+        mileage       = request.form.get('mileage', '').strip()
+        check_doc     = request.form.get('check_doc_status', '').strip()
+        check_doc_cmt = request.form.get('check_doc_comment', '').strip()
 
         if not all([fio, gosnomer, type_, date]):
             return jsonify({'ok': False, 'error': 'Не все поля заполнены'}), 400
@@ -282,6 +284,16 @@ def submit():
         inspection_id = str(uuid.uuid4())
         safe_gos = safe_filename(gosnomer)
         mileage_str = f"{int(mileage):,}".replace(',', ' ') + ' км' if mileage else '—'
+
+        check_icons = {'ok': '✅', 'warn': '⚠️', 'bad': '🔴'}
+        check_labels = {'ok': 'всё хорошо', 'warn': 'некритичные замечания', 'bad': 'критичные замечания'}
+        doc_line = ''
+        if check_doc:
+            icon = check_icons.get(check_doc, '')
+            label = check_labels.get(check_doc, '')
+            doc_line = f'\n📋 Документы: {icon} {label}'
+            if check_doc_cmt:
+                doc_line += f' — {check_doc_cmt}'
 
         # 1. Читаем фото
         photo_bytes = {}
