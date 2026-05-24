@@ -119,10 +119,13 @@ def analyze_photos_with_ai(photo_bytes_dict):
     if not ANTHROPIC_KEY:
         return None
     content = [{'type': 'text', 'text': (
-        'Ты эксперт по осмотру грузовых автомобилей. '
-        'Проанализируй фотографии и найди видимые повреждения: царапины, вмятины, трещины, сколы, загрязнения. '
-        'Для каждой зоны напиши одну строку. Если повреждений нет — напиши "без повреждений". '
-        'Отвечай только на русском языке, кратко.'
+        'Ты эксперт по осмотру грузовых автомобилей с многолетним опытом. '
+        'Внимательно осмотри каждое фото и найди ВСЕ видимые повреждения: '
+        'разбитые или треснутые фары/стёкла, вмятины, царапины, сколы краски, '
+        'сломанный пластик, деформации кузова, повреждения бампера. '
+        'Для каждой зоны напиши конкретно что повреждено и где именно (левая/правая сторона, верх/низ). '
+        'Если повреждений нет — напиши "без повреждений". '
+        'Отвечай только на русском языке. Будь конкретным и точным.'
     )}]
     for zone in ZONE_ORDER:
         if zone not in photo_bytes_dict:
@@ -135,7 +138,7 @@ def analyze_photos_with_ai(photo_bytes_dict):
         resp = requests.post(
             'https://api.anthropic.com/v1/messages',
             headers={'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json'},
-            json={'model': 'claude-haiku-4-5-20251001', 'max_tokens': 1024, 'messages': [{'role': 'user', 'content': content}]},
+            json={'model': 'claude-sonnet-4-6', 'max_tokens': 1024, 'messages': [{'role': 'user', 'content': content}]},
             timeout=90
         )
         if resp.status_code == 200:
