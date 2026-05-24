@@ -213,12 +213,12 @@
   <button class="btn-main btn-secondary" onclick="showScreen('screen1')">← Назад</button>
   <div style="height:24px"></div>
 
-  <input type="file" class="cam" id="cam-front" accept="image/*" capture="environment" onchange="photoTaken('front',this)">
+  <input type="file" class="cam" id="cam-front" accept="image/*" onchange="photoTaken('front',this)">
   <input type="file" class="cam" id="cam-back"  accept="image/*" capture="environment" onchange="photoTaken('back',this)">
   <input type="file" class="cam" id="cam-left"  accept="image/*" capture="environment" onchange="photoTaken('left',this)">
-  <input type="file" class="cam" id="cam-right" accept="image/*" capture="environment" onchange="photoTaken('right',this)">
-  <input type="file" class="cam" id="cam-salon" accept="image/*" capture="environment" onchange="photoTaken('salon',this)">
-  <input type="file" class="cam" id="cam-sleep" accept="image/*" capture="environment" onchange="photoTaken('sleep',this)">
+  <input type="file" class="cam" id="cam-right" accept="image/*" onchange="photoTaken('right',this)">
+  <input type="file" class="cam" id="cam-salon" accept="image/*" onchange="photoTaken('salon',this)">
+  <input type="file" class="cam" id="cam-sleep" accept="image/*" onchange="photoTaken('sleep',this)">
 </div>
 
 <!-- ЭКРАН 3 -->
@@ -402,6 +402,34 @@ function updateProgress() {
   document.getElementById('btn-send').disabled = (count < 6);
 }
 
+async function compressPhoto(file, maxSizeKB = 1500) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const maxDim = 1600;
+      let w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        const ratio = Math.min(maxDim/w, maxDim/h);
+        w = Math.floor(w * ratio); h = Math.floor(h * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      let quality = 0.82;
+      const tryCompress = () => {
+        canvas.toBlob((blob) => {
+          if (blob.size <= maxSizeKB * 1024 || quality <= 0.4) { resolve(blob); }
+          else { quality -= 0.1; tryCompress(); }
+        }, 'image/jpeg', quality);
+      };
+      tryCompress();
+    };
+    img.src = url;
+  });
+}
+
 async function sendReport() {
   showScreen('screen3');
   const fio     = document.getElementById('fio').value.trim();
@@ -420,7 +448,10 @@ async function sendReport() {
 
   const zones = { front:'Спереди', back:'Сзади', left:'Левый бок', right:'Правый бок', salon:'Салон', sleep:'Спальник' };
   for (const [key, label] of Object.entries(zones)) {
-    if (photos[key]) formData.append(key, photos[key], `${label}.jpg`);
+    if (photos[key]) {
+      const compressed = await compressPhoto(photos[key]);
+      formData.append(key, compressed, `${label}.jpg`);
+    }
   }
 
   try {
@@ -487,6 +518,16 @@ function openDbModal() {
 function closeDbModal() {
   document.getElementById('db-modal').classList.remove('open');
 }
+
+// ===== Камера: capture только для Android =====
+(function() {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (!isIOS) {
+    document.querySelectorAll('input.cam').forEach(el => {
+      el.setAttribute('capture', 'environment');
+    });
+  }
+})();
 
 // ===== PWA =====
 if ('serviceWorker' in navigator) {
