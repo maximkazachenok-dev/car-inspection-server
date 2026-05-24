@@ -3,6 +3,7 @@ import json
 import uuid
 import base64
 import requests
+import threading
 from io import BytesIO
 from PIL import Image
 from flask import Flask, request, jsonify
