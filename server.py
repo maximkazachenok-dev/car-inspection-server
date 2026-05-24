@@ -191,11 +191,34 @@ def compare_inspections_with_ai(insp1, insp2):
 
 def send_telegram_message(chat_id, text):
     try:
-        requests.post(
-            f'{TELEGRAM_API}/sendMessage',
-            json={'chat_id': chat_id, 'text': text, 'parse_mode': 'Markdown'},
-            timeout=15
-        )
+        # Telegram лимит 4096 символов — разбиваем на части если длиннее
+        max_len = 4000
+        if len(text) <= max_len:
+            requests.post(
+                f'{TELEGRAM_API}/sendMessage',
+                json={'chat_id': chat_id, 'text': text, 'parse_mode': 'Markdown'},
+                timeout=15
+            )
+        else:
+            # Разбиваем по строкам чтобы не резать слова
+            lines = text.split('\n')
+            chunk = ''
+            for line in lines:
+                if len(chunk) + len(line) + 1 > max_len:
+                    requests.post(
+                        f'{TELEGRAM_API}/sendMessage',
+                        json={'chat_id': chat_id, 'text': chunk, 'parse_mode': 'Markdown'},
+                        timeout=15
+                    )
+                    chunk = line
+                else:
+                    chunk = chunk + '\n' + line if chunk else line
+            if chunk:
+                requests.post(
+                    f'{TELEGRAM_API}/sendMessage',
+                    json={'chat_id': chat_id, 'text': chunk, 'parse_mode': 'Markdown'},
+                    timeout=15
+                )
     except Exception as e:
         print(f'Telegram message error: {e}')
 
