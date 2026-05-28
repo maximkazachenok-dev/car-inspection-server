@@ -274,6 +274,9 @@ def submit():
         gosnomer = request.form.get('gosnomer', '').strip().upper()
         type_    = request.form.get('type', '').strip()
         date     = request.form.get('date', '').strip()
+        vehicle_type  = request.form.get('vehicle_type', 'Тягач').strip()
+        trailer_type  = request.form.get('trailer_type', '').strip()
+        moto_hours    = request.form.get('moto_hours', '').strip()
         mileage       = request.form.get('mileage', '').strip()
         check_doc     = request.form.get('check_doc_status', '').strip()
         check_doc_cmt = request.form.get('check_doc_comment', '').strip()
@@ -283,7 +286,19 @@ def submit():
 
         inspection_id = str(uuid.uuid4())
         safe_gos = safe_filename(gosnomer)
-        mileage_str = f"{int(mileage):,}".replace(',', ' ') + ' км' if mileage else '—'
+        if mileage:
+            mileage_val = f"{int(mileage):,}".replace(',', ' ')
+            mileage_str = f"{mileage_val} км"
+        else:
+            mileage_str = None
+
+        # Доп. строки для прицепа
+        trailer_line = ''
+        if vehicle_type == 'Полуприцеп':
+            if trailer_type:
+                trailer_line += f'\n🚚 Тип прицепа: {trailer_type.upper()}'
+            if moto_hours:
+                trailer_line += f'\n⏱ Мото-часы ДВС: {moto_hours} м/ч'
 
         check_icons = {'ok': '✅', 'warn': '⚠️', 'bad': '🔴'}
         check_labels = {'ok': 'всё хорошо', 'warn': 'некритичные замечания', 'bad': 'критичные замечания'}
@@ -332,7 +347,7 @@ def submit():
         def run_background(pb, gos, tp, dt, ml_str, fio_val, db_ok):
             try:
                 caption = (
-                    f"🚛 *ОСМОТР АВТОМОБИЛЯ*\n\n"
+                    f"🚛 *ОСМОТР {vehicle_type.upper()}*\n\n"
                     f"👤 {fio_val}\n🔢 {gos}\n📋 {tp.upper()}\n📅 {dt}\n🛣 Пробег: {ml_str}"
                 )
                 if db_ok:
