@@ -320,6 +320,9 @@ def submit():
                 continue
             fb = file.read()
             if fb and len(fb) >= 100:
+                # Сжимаем на сервере — защита от больших фото с iOS
+                if len(fb) > 1500 * 1024:
+                    fb = compress_image(fb)
                 photo_bytes[zone] = fb
 
         if not photo_bytes:
@@ -344,7 +347,7 @@ def submit():
         db_saved = save_inspection_to_db(db_record)
 
         # 4. Telegram + ИИ — в фоновом потоке
-        def run_background(pb, gos, tp, dt, ml_str, fio_val, db_ok):
+        def run_background(pb, gos, tp, dt, ml_str, fio_val, db_ok, extra_lines=''):
             print(f'[BG] Starting background for {gos} {dt}')
             try:
                 caption = (
@@ -390,9 +393,10 @@ def submit():
                 print(f'Background error: {e}')
                 import traceback; traceback.print_exc()
 
+        extra_lines = trailer_line + doc_line
         threading.Thread(
             target=run_background,
-            args=(photo_bytes, gosnomer, type_, date, mileage_str, fio, db_saved),
+            args=(photo_bytes, gosnomer, type_, date, mileage_str, fio, db_saved, extra_lines),
             daemon=True
         ).start()
 
