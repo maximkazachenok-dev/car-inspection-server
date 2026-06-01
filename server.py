@@ -345,6 +345,7 @@ def submit():
 
         # 4. Telegram + ИИ — в фоновом потоке
         def run_background(pb, gos, tp, dt, ml_str, fio_val, db_ok):
+            print(f'[BG] Starting background for {gos} {dt}')
             try:
                 caption = (
                     f"🚛 *ОСМОТР {vehicle_type.upper()}*\n\n"
@@ -375,10 +376,16 @@ def submit():
                     print(f'Telegram: {tg.status_code}')
 
                 if ANTHROPIC_KEY:
+                    print(f'[BG] Starting AI analysis for {gos}')
                     ai_report = analyze_photos_with_ai(pb)
                     if ai_report:
+                        print(f'[BG] AI analysis done for {gos}')
                         send_telegram_message(CHAT_ID,
                             f"🤖 *АНАЛИЗ ИИ*\n*{gos} • {tp} • {dt}*\n\n{ai_report}")
+                    else:
+                        print(f'[BG] AI returned empty report for {gos}')
+                else:
+                    print('[BG] No ANTHROPIC_KEY set')
             except Exception as e:
                 print(f'Background error: {e}')
                 import traceback; traceback.print_exc()
