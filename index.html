@@ -773,6 +773,7 @@ function resetApp() {
   Object.keys(photos).forEach(k => delete photos[k]);
   selectedType = '';
   trailerType = '';
+  vehicleType = 'truck';
   Object.keys(checkState).forEach(k => delete checkState[k]);
   ['fio','gosnomer','mileage','moto-hours'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';

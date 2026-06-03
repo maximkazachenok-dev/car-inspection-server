@@ -352,7 +352,7 @@ def submit():
             try:
                 caption = (
                     f"🚛 *ОСМОТР {vehicle_type.upper()}*\n\n"
-                    f"👤 {fio_val}\n🔢 {gos}\n📋 {tp.upper()}\n📅 {dt}\n🛣 Пробег: {ml_str}"
+                    f"👤 {fio_val}\n🔢 {gos}\n📋 {tp.upper()}\n📅 {dt}\n🛣 Пробег: {ml_str}{extra_lines}"
                 )
                 if db_ok:
                     caption += '\n✅ _Сохранено в базе данных_'
