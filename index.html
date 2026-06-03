@@ -800,6 +800,21 @@ function resetApp() {
     document.getElementById('cam-'+z).value = '';
   });
   document.getElementById('date').value = `${yyyy}-${mm}-${dd}`;
+  // Восстанавливаем UI для тягача явно — независимо от предыдущего состояния
+  document.getElementById('label-gosnomer').textContent = 'Гос. номер авто';
+  document.getElementById('label-mileage').style.display = '';
+  document.getElementById('mileage').style.display = '';
+  document.getElementById('mileage').setAttribute('required', '');
+  document.getElementById('mileage').placeholder = '214400';
+  document.getElementById('trailer-type-section').style.display = 'none';
+  document.getElementById('check-docs-section').style.display = '';
+  document.getElementById('item-sleep').style.display = 'none';
+  document.getElementById('label-salon').textContent = 'Салон';
+  document.getElementById('icon-salon').innerHTML = '🪑';
+  document.getElementById('cam-sleep').disabled = true;
+  ['tt-tent','tt-iso','tt-ref'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.classList.remove('active-ok');
+  });
   updateProgress();
   showScreen('screen0');
 }
