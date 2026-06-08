@@ -119,13 +119,21 @@ def analyze_photos_with_ai(photo_bytes_dict):
     if not ANTHROPIC_KEY:
         return None
     content = [{'type': 'text', 'text': (
-        'Ты эксперт по осмотру грузовых автомобилей с многолетним опытом. '
-        'Внимательно осмотри каждое фото и найди ВСЕ видимые повреждения: '
-        'разбитые или треснутые фары/стёкла, вмятины, царапины, сколы краски, '
-        'сломанный пластик, деформации кузова, повреждения бампера. '
-        'Для каждой зоны напиши конкретно что повреждено и где именно (левая/правая сторона, верх/низ). '
-        'Если повреждений нет — напиши "без повреждений". '
-        'Отвечай только на русском языке. Будь конкретным и точным.'
+        'Ты эксперт по осмотру транспортных средств. '
+        'Осмотри каждое фото и выяви ТОЛЬКО видимые повреждения: вмятины, царапины, трещины, сколы краски, сломанные элементы. '
+        'Формат ответа — строго следующий:\n'
+        '🔍 АНАЛИЗ ПОВРЕЖДЕНИЙ\n'
+        'Спереди: [повреждения или "✅ без повреждений"]\n'
+        'Сзади: [повреждения или "✅ без повреждений"]\n'
+        'Левый бок: [повреждения или "✅ без повреждений"]\n'
+        'Правый бок: [повреждения или "✅ без повреждений"]\n'
+        'Салон: [повреждения или "✅ без повреждений"]\n'
+        'Итог: [1-2 предложения]\n\n'
+        'Правила:\n'
+        '- Каждая зона — одна строка, максимум 10 слов\n'
+        '- Пиши только факты, никаких рассуждений\n'
+        '- Если зоны нет на фото — пропусти её\n'
+        'Отвечай только на русском языке.'
     )}]
     for zone in ZONE_ORDER:
         if zone not in photo_bytes_dict:
@@ -191,7 +199,6 @@ def compare_inspections_with_ai(insp1, insp2):
 
 def send_telegram_message(chat_id, text):
     try:
-        # Telegram лимит 4096 символов — разбиваем на части если длиннее
         max_len = 4000
         if len(text) <= max_len:
             requests.post(
@@ -200,7 +207,6 @@ def send_telegram_message(chat_id, text):
                 timeout=15
             )
         else:
-            # Разбиваем по строкам чтобы не резать слова
             lines = text.split('\n')
             chunk = ''
             for line in lines:
@@ -221,6 +227,21 @@ def send_telegram_message(chat_id, text):
                 )
     except Exception as e:
         print(f'Telegram message error: {e}')
+
+
+def send_telegram_message_spoiler(chat_id, text):
+    """Отправляет текст в Telegram со spoiler — диспетчер разворачивает нажатием."""
+    try:
+        import html as _html
+        safe = _html.escape(text)
+        spoiler_msg = f'<tg-spoiler>{safe}</tg-spoiler>'
+        requests.post(
+            f'{TELEGRAM_API}/sendMessage',
+            json={'chat_id': chat_id, 'text': spoiler_msg, 'parse_mode': 'HTML'},
+            timeout=15
+        )
+    except Exception as e:
+        print(f'Telegram spoiler error: {e}')
 
 
 @app.route('/', methods=['GET'])
@@ -383,8 +404,21 @@ def submit():
                     ai_report = analyze_photos_with_ai(pb)
                     if ai_report:
                         print(f'[BG] AI analysis done for {gos}')
-                        send_telegram_message(CHAT_ID,
-                            f"🤖 *АНАЛИЗ ИИ*\n*{gos} • {tp} • {dt}*\n\n{ai_report}")
+                        # Заголовок отдельно — всегда короткий
+                        header = f"🤖 *АНАЛИЗ ИИ* — {gos} • {tp} • {dt}"
+                        # Очищаем лишние пробелы и пустые строки
+                        lines = [l for l in ai_report.split('\n') if l.strip()]
+                        clean_report = '\n'.join(lines)
+                        # Отправляем заголовок
+                        send_telegram_message(CHAT_ID, header)
+                        # Тело анализа — разбиваем на части если длинное
+                        chunk_size = 3500
+                        if len(clean_report) <= chunk_size:
+                            send_telegram_message_spoiler(CHAT_ID, clean_report)
+                        else:
+                            for i in range(0, len(clean_report), chunk_size):
+                                chunk = clean_report[i:i+chunk_size]
+                                send_telegram_message_spoiler(CHAT_ID, chunk)
                     else:
                         print(f'[BG] AI returned empty report for {gos}')
                 else:
