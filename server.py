@@ -404,21 +404,50 @@ def submit():
                     ai_report = analyze_photos_with_ai(pb)
                     if ai_report:
                         print(f'[BG] AI analysis done for {gos}')
-                        # Заголовок отдельно — всегда короткий
-                        header = f"🤖 *АНАЛИЗ ИИ* — {gos} • {tp} • {dt}"
-                        # Очищаем лишние пробелы и пустые строки
+                        import html as _html
+                        # Очищаем пустые строки
                         lines = [l for l in ai_report.split('\n') if l.strip()]
-                        clean_report = '\n'.join(lines)
-                        # Отправляем заголовок
-                        send_telegram_message(CHAT_ID, header)
-                        # Тело анализа — разбиваем на части если длинное
-                        chunk_size = 3500
-                        if len(clean_report) <= chunk_size:
-                            send_telegram_message_spoiler(CHAT_ID, clean_report)
+                        # Первые 4 строки — видимый превью
+                        preview_lines = lines[:4]
+                        rest_lines = lines[4:]
+                        header = f"🤖 <b>АНАЛИЗ ИИ</b> — {_html.escape(gos)} • {_html.escape(tp)} • {_html.escape(dt)}"
+                        preview = '\n'.join(_html.escape(l) for l in preview_lines)
+                        if rest_lines:
+                            # Остаток скрыт под spoiler
+                            rest = '\n'.join(_html.escape(l) for l in rest_lines)
+                            # Разбиваем если слишком длинное
+                            chunk_size = 3500
+                            if len(rest) <= chunk_size:
+                                full_msg = f"{header}\n\n{preview}\n<tg-spoiler>{rest}</tg-spoiler>"
+                                requests.post(
+                                    f'{TELEGRAM_API}/sendMessage',
+                                    json={{'chat_id': CHAT_ID, 'text': full_msg, 'parse_mode': 'HTML'}},
+                                    timeout=15
+                                )
+                            else:
+                                # Если очень длинное — первое сообщение с превью
+                                first_msg = f"{header}\n\n{preview}"
+                                requests.post(
+                                    f'{TELEGRAM_API}/sendMessage',
+                                    json={{'chat_id': CHAT_ID, 'text': first_msg, 'parse_mode': 'HTML'}},
+                                    timeout=15
+                                )
+                                # Остаток частями со spoiler
+                                for i in range(0, len(rest), chunk_size):
+                                    chunk = rest[i:i+chunk_size]
+                                    requests.post(
+                                        f'{TELEGRAM_API}/sendMessage',
+                                        json={{'chat_id': CHAT_ID, 'text': f'<tg-spoiler>{chunk}</tg-spoiler>', 'parse_mode': 'HTML'}},
+                                        timeout=15
+                                    )
                         else:
-                            for i in range(0, len(clean_report), chunk_size):
-                                chunk = clean_report[i:i+chunk_size]
-                                send_telegram_message_spoiler(CHAT_ID, chunk)
+                            # Всё влезло в превью
+                            full_msg = f"{header}\n\n{preview}"
+                            requests.post(
+                                f'{TELEGRAM_API}/sendMessage',
+                                json={{'chat_id': CHAT_ID, 'text': full_msg, 'parse_mode': 'HTML'}},
+                                timeout=15
+                            )
                     else:
                         print(f'[BG] AI returned empty report for {gos}')
                 else:
