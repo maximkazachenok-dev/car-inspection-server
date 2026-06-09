@@ -229,21 +229,6 @@ def send_telegram_message(chat_id, text):
         print(f'Telegram message error: {e}')
 
 
-def send_telegram_message_spoiler(chat_id, text):
-    """Отправляет текст в Telegram со spoiler — диспетчер разворачивает нажатием."""
-    try:
-        import html as _html
-        safe = _html.escape(text)
-        spoiler_msg = f'<tg-spoiler>{safe}</tg-spoiler>'
-        requests.post(
-            f'{TELEGRAM_API}/sendMessage',
-            json={'chat_id': chat_id, 'text': spoiler_msg, 'parse_mode': 'HTML'},
-            timeout=15
-        )
-    except Exception as e:
-        print(f'Telegram spoiler error: {e}')
-
-
 @app.route('/', methods=['GET'])
 def health():
     return 'OK', 200
@@ -404,64 +389,41 @@ def submit():
                     ai_report = analyze_photos_with_ai(pb)
                     if ai_report:
                         print(f'[BG] AI analysis done for {gos}, length={len(ai_report)}')
-                        import html as _html
                         # Очищаем пустые строки
                         lines = [l for l in ai_report.split('\n') if l.strip()]
-                        preview_lines = lines[:4]
-                        rest_lines = lines[4:]
-                        header = f"\U0001f916 <b>АНАЛИЗ ИИ</b> \u2014 {_html.escape(gos)} \u2022 {_html.escape(tp)} \u2022 {_html.escape(dt)}"
-                        preview = '\n'.join(_html.escape(l) for l in preview_lines)
-                        if rest_lines:
-                            rest = '\n'.join(_html.escape(l) for l in rest_lines)
-                            chunk_size = 3500
-                            if len(rest) <= chunk_size:
-                                full_msg = header + '\n\n' + preview + '\n<tg-spoiler>' + rest + '</tg-spoiler>'
-                                r = requests.post(
-                                    f'{TELEGRAM_API}/sendMessage',
-                                    json={'chat_id': CHAT_ID, 'text': full_msg, 'parse_mode': 'HTML'},
-                                    timeout=15
-                                )
-                                print(f'[BG] AI msg sent: {r.status_code} {r.text[:200]}')
-                                # Если HTML отклонён — отправляем без форматирования
-                                if r.status_code != 200:
-                                    plain = '\n'.join(lines)
-                                    r2 = requests.post(
-                                        f'{TELEGRAM_API}/sendMessage',
-                                        json={'chat_id': CHAT_ID, 'text': '🤖 АНАЛИЗ ИИ\n\n' + plain},
-                                        timeout=15
-                                    )
-                                    print(f'[BG] AI fallback sent: {r2.status_code}')
-                            else:
-                                first_msg = header + '\n\n' + preview
-                                r = requests.post(
-                                    f'{TELEGRAM_API}/sendMessage',
-                                    json={'chat_id': CHAT_ID, 'text': first_msg, 'parse_mode': 'HTML'},
-                                    timeout=15
-                                )
-                                print(f'[BG] AI first msg: {r.status_code} {r.text[:200]}')
-                                for i in range(0, len(rest), chunk_size):
-                                    chunk = rest[i:i+chunk_size]
-                                    rc = requests.post(
-                                        f'{TELEGRAM_API}/sendMessage',
-                                        json={'chat_id': CHAT_ID, 'text': '<tg-spoiler>' + chunk + '</tg-spoiler>', 'parse_mode': 'HTML'},
-                                        timeout=15
-                                    )
-                                    print(f'[BG] AI chunk: {rc.status_code}')
-                        else:
-                            full_msg = header + '\n\n' + preview
+                        clean_report = '\n'.join(lines)
+                        header = f"\U0001f916 *АНАЛИЗ AI-ПОМОЩНИКА* \u2014 {gos} \u2022 {tp} \u2022 {dt}"
+                        full_msg = header + '\n\n' + clean_report
+                        # Разбиваем на части если длиннее лимита Telegram
+                        max_len = 4000
+                        if len(full_msg) <= max_len:
                             r = requests.post(
                                 f'{TELEGRAM_API}/sendMessage',
-                                json={'chat_id': CHAT_ID, 'text': full_msg, 'parse_mode': 'HTML'},
+                                json={'chat_id': CHAT_ID, 'text': full_msg, 'parse_mode': 'Markdown'},
                                 timeout=15
                             )
                             print(f'[BG] AI msg sent: {r.status_code} {r.text[:200]}')
                             if r.status_code != 200:
-                                plain = '\n'.join(lines)
                                 requests.post(
                                     f'{TELEGRAM_API}/sendMessage',
-                                    json={'chat_id': CHAT_ID, 'text': '🤖 АНАЛИЗ ИИ\n\n' + plain},
+                                    json={'chat_id': CHAT_ID, 'text': full_msg},
                                     timeout=15
                                 )
+                        else:
+                            # Заголовок + тело частями
+                            requests.post(
+                                f'{TELEGRAM_API}/sendMessage',
+                                json={'chat_id': CHAT_ID, 'text': header, 'parse_mode': 'Markdown'},
+                                timeout=15
+                            )
+                            for i in range(0, len(clean_report), 3500):
+                                chunk = clean_report[i:i+3500]
+                                rc = requests.post(
+                                    f'{TELEGRAM_API}/sendMessage',
+                                    json={'chat_id': CHAT_ID, 'text': chunk},
+                                    timeout=15
+                                )
+                                print(f'[BG] AI chunk: {rc.status_code}')
                     else:
                         print(f'[BG] AI returned empty report for {gos}')
                 else:
