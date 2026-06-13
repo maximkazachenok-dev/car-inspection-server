@@ -110,6 +110,33 @@
   }
   .tt-label { font-size: 15px; font-weight: 500; color: #1a1a2e; }
 
+  /* Плавающая кнопка Админ */
+  .btn-db-float {
+    position: fixed; bottom: 20px; right: 16px; z-index: 150;
+    background: #1a1a2e; color: white; border: none;
+    width: 44px; height: 44px; border-radius: 50%;
+    font-size: 18px; font-weight: 600; cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25); transition: opacity 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .btn-db-float:active { opacity: 0.8; }
+
+  /* Админ-панель */
+  .admin-section {
+    background: #f8fafc; border: 1.5px solid #e8e8e8;
+    border-radius: 12px; padding: 16px; margin-bottom: 14px;
+  }
+  .admin-section-title { font-size: 15px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
+  .admin-section-desc { font-size: 13px; color: #64748b; line-height: 1.5; }
+  .btn-admin-action {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 16px; border: 1.5px solid #e8e8e8;
+    border-radius: 8px; background: white; font-size: 13px;
+    font-weight: 600; color: #1a1a2e; cursor: pointer;
+    font-family: inherit; transition: all 0.15s;
+  }
+  .btn-admin-action:active { opacity: 0.8; }
+
   /* Плавающая кнопка База */
   .btn-db-float {
     position: fixed;
@@ -280,7 +307,69 @@
   </div>
 </div>
 
-<button class="btn-db-float" onclick="openDbModal()" aria-label="База водителей">📋 База</button>
+<button class="btn-db-float" id="btn-admin" onclick="openAdminPanel()" aria-label="Администратор">⚙️</button>
+
+
+<!-- ===== МОДАЛ: ВХОД В АДМИН-ПАНЕЛЬ ===== -->
+<div class="modal-overlay" id="admin-login-modal" style="display:none">
+  <div class="modal-box" style="max-width:340px">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:36px;margin-bottom:8px">🔐</div>
+      <div style="font-size:18px;font-weight:700;color:#1a1a2e">Администратор</div>
+      <div style="font-size:13px;color:#888;margin-top:4px">Введите пароль для входа</div>
+    </div>
+    <input type="password" id="admin-password-input" placeholder="Пароль"
+      style="width:100%;padding:12px 14px;border:2px solid #e8e8e8;border-radius:10px;font-size:16px;outline:none;box-sizing:border-box;margin-bottom:12px;font-family:inherit"
+      onkeydown="if(event.key==='Enter')checkAdminPassword()">
+    <div id="admin-login-error" style="display:none;color:#dc2626;font-size:13px;margin-bottom:10px;text-align:center">Неверный пароль</div>
+    <button class="btn-main" onclick="checkAdminPassword()" style="margin-bottom:8px">Войти</button>
+    <button class="btn-main btn-secondary" onclick="closeAdminLogin()">Отмена</button>
+  </div>
+</div>
+
+<!-- ===== МОДАЛ: АДМИН-ПАНЕЛЬ ===== -->
+<div class="modal-overlay" id="admin-panel-modal" style="display:none">
+  <div class="modal-box" style="max-width:480px;max-height:85vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:#1a1a2e">⚙️ Админ-панель</div>
+        <div style="font-size:12px;color:#888;margin-top:2px">Управление приложением</div>
+      </div>
+      <button onclick="closeAdminPanel()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;padding:4px">✕</button>
+    </div>
+
+    <!-- Секция: База водителей -->
+    <div class="admin-section">
+      <div class="admin-section-title">👥 База водителей и ТС</div>
+      <div class="admin-section-desc">Загрузите Excel или CSV файл. Колонка 1 — ФИО, колонка 2 — гос. номер. Используется для автодополнения при вводе данных водителя.</div>
+      <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+        <label class="btn-admin-action">
+          📂 Загрузить файл
+          <input type="file" id="admin-db-file" accept=".xlsx,.xls,.csv" onchange="adminLoadDatabase(this)" style="display:none">
+        </label>
+        <button class="btn-admin-action" onclick="adminClearDatabase()" style="background:#fee2e2;color:#dc2626;border-color:#fca5a5">🗑 Очистить базу</button>
+      </div>
+      <div id="admin-db-status" style="margin-top:10px;font-size:13px;color:#16a34a;display:none"></div>
+      <div id="admin-db-preview" style="margin-top:10px"></div>
+    </div>
+
+    <!-- Секция: Смена пароля -->
+    <div class="admin-section">
+      <div class="admin-section-title">🔑 Пароль администратора</div>
+      <div class="admin-section-desc">Смените пароль входа в админ-панель.</div>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <input type="password" id="admin-new-password" placeholder="Новый пароль"
+          style="flex:1;padding:10px 12px;border:2px solid #e8e8e8;border-radius:8px;font-size:14px;outline:none;font-family:inherit">
+        <button class="btn-admin-action" onclick="changeAdminPassword()">Сохранить</button>
+      </div>
+      <div id="admin-pass-status" style="margin-top:8px;font-size:13px;display:none"></div>
+    </div>
+
+    <div style="margin-top:16px">
+      <button class="btn-admin-action" onclick="adminLogout()" style="background:#f1f5f9;color:#64748b;border-color:#cbd5e1;width:100%">🚪 Выйти из панели</button>
+    </div>
+  </div>
+</div>
 
 <div class="install-banner" id="install-banner">
   <div class="install-text">📲 Добавьте на главный экран</div>
@@ -349,6 +438,106 @@
       </div>
       <textarea class="check-comment" id="doc-comment" placeholder="Введите замечания по документам..."></textarea>
     </div>
+
+
+    <!-- Блок ТМЦ -->
+    <div class="check-section" id="check-tmc-section" style="margin-top:16px">
+      <div class="check-header">
+        <span class="check-title">Проверка ТМЦ</span>
+        <button class="info-btn" onclick="toggleTmcInfoPopup(event)" aria-label="Подсказка">i
+          <div class="info-popup" id="info-popup-tmc">
+            <div class="info-row">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
+              <span>Есть / в порядке</span>
+            </div>
+            <div class="info-row">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>Замечание</span>
+            </div>
+            <div class="info-row">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>Отсутствует / повреждён</span>
+            </div>
+          </div>
+        </button>
+      </div>
+        <div class="check-row" style="margin-top:10px">
+          <span class="check-label">🧯 Огнетушитель</span>
+          <div class="check-icons">
+            <button class="check-icon" id="tmc-ok-fire" onclick="selectCheck('tmc_fire','ok')" title="Есть">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
+            </button>
+            <button class="check-icon" id="tmc-warn-fire" onclick="selectCheck('tmc_fire','warn')" title="Замечание">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </button>
+            <button class="check-icon" id="tmc-bad-fire" onclick="selectCheck('tmc_fire','bad')" title="Отсутствует/повреждён">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </button>
+          </div>
+        </div>
+        <textarea class="check-comment" id="tmc-comment-fire" placeholder="Комментарий по пункту огнетушитель..."></textarea>
+        <div class="check-row" style="margin-top:10px">
+          <span class="check-label">🩺 Аптечка</span>
+          <div class="check-icons">
+            <button class="check-icon" id="tmc-ok-medkit" onclick="selectCheck('tmc_medkit','ok')" title="Есть">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
+            </button>
+            <button class="check-icon" id="tmc-warn-medkit" onclick="selectCheck('tmc_medkit','warn')" title="Замечание">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </button>
+            <button class="check-icon" id="tmc-bad-medkit" onclick="selectCheck('tmc_medkit','bad')" title="Отсутствует/повреждён">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </button>
+          </div>
+        </div>
+        <textarea class="check-comment" id="tmc-comment-medkit" placeholder="Комментарий по пункту аптечка..."></textarea>
+        <div class="check-row" style="margin-top:10px">
+          <span class="check-label">⚠️ Знак аварийной остановки</span>
+          <div class="check-icons">
+            <button class="check-icon" id="tmc-ok-sign" onclick="selectCheck('tmc_sign','ok')" title="Есть">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
+            </button>
+            <button class="check-icon" id="tmc-warn-sign" onclick="selectCheck('tmc_sign','warn')" title="Замечание">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </button>
+            <button class="check-icon" id="tmc-bad-sign" onclick="selectCheck('tmc_sign','bad')" title="Отсутствует/повреждён">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </button>
+          </div>
+        </div>
+        <textarea class="check-comment" id="tmc-comment-sign" placeholder="Комментарий по пункту знак аварийной остановки..."></textarea>
+        <div class="check-row" style="margin-top:10px">
+          <span class="check-label">🔧 Домкрат</span>
+          <div class="check-icons">
+            <button class="check-icon" id="tmc-ok-jack" onclick="selectCheck('tmc_jack','ok')" title="Есть">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
+            </button>
+            <button class="check-icon" id="tmc-warn-jack" onclick="selectCheck('tmc_jack','warn')" title="Замечание">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </button>
+            <button class="check-icon" id="tmc-bad-jack" onclick="selectCheck('tmc_jack','bad')" title="Отсутствует/повреждён">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </button>
+          </div>
+        </div>
+        <textarea class="check-comment" id="tmc-comment-jack" placeholder="Комментарий по пункту домкрат..."></textarea>
+        <div class="check-row" style="margin-top:10px">
+          <span class="check-label">🔩 Ключ балонный</span>
+          <div class="check-icons">
+            <button class="check-icon" id="tmc-ok-wrench" onclick="selectCheck('tmc_wrench','ok')" title="Есть">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
+            </button>
+            <button class="check-icon" id="tmc-warn-wrench" onclick="selectCheck('tmc_wrench','warn')" title="Замечание">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </button>
+            <button class="check-icon" id="tmc-bad-wrench" onclick="selectCheck('tmc_wrench','bad')" title="Отсутствует/повреждён">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </button>
+          </div>
+        </div>
+        <textarea class="check-comment" id="tmc-comment-wrench" placeholder="Комментарий по пункту ключ балонный..."></textarea>
+    </div>
+
 
     <label>ФИО водителя</label>
     <div class="autocomplete-wrap">
@@ -508,106 +697,31 @@ try {
 
 // ===== БАЗА ДАННЫХ =====
 function loadDatabase(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const ext = file.name.split('.').pop().toLowerCase();
-
-  if (ext === 'csv') {
-    const reader = new FileReader();
-    reader.onload = (e) => { parseCSV(e.target.result); input.value = ''; };
-    reader.readAsText(file, 'UTF-8');
-  } else if (ext === 'xlsx' || ext === 'xls') {
-    const reader = new FileReader();
-    reader.onload = (e) => { parseExcel(e.target.result); input.value = ''; };
-    reader.readAsArrayBuffer(file);
-  } else {
-    alert('Поддерживаются только CSV и Excel файлы');
-  }
+  // Перенаправляем в админ-панель
+  adminLoadDatabase(input);
 }
 
-function parseCSV(text) {
-  const lines = text.split('\n').filter(l => l.trim());
-  const result = [];
-  const start = isHeader(lines[0]) ? 1 : 0;
-  for (let i = start; i < lines.length; i++) {
-    const cols = lines[i].split(/[,;|\t]/).map(c => c.trim().replace(/^"|"$/g,''));
-    if (cols.length >= 2 && cols[0] && cols[1]) {
-      result.push({ fio: cols[0], gosnomer: cols[1].toUpperCase() });
-    }
-  }
-  saveDatabase(result);
-}
-
-function parseExcel(buffer) {
-  try {
-    const wb = XLSX.read(buffer, { type: 'array' });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
-    const result = [];
-    const start = rows.length > 0 && isHeader(String(rows[0][0] || '')) ? 1 : 0;
-    for (let i = start; i < rows.length; i++) {
-      const row = rows[i];
-      if (row.length >= 2 && row[0] && row[1]) {
-        result.push({ fio: String(row[0]).trim(), gosnomer: String(row[1]).trim().toUpperCase() });
-      }
-    }
-    saveDatabase(result);
-  } catch(e) {
-    alert('Ошибка чтения Excel. Попробуйте сохранить как CSV.');
-  }
-}
-
-function isHeader(str) {
-  const s = (str || '').toLowerCase();
-  return s.includes('фио') || s.includes('имя') || s.includes('водитель') || s.includes('номер') || s.includes('name');
-}
-
-function saveDatabase(data) {
-  database = data;
-  try { localStorage.setItem('car_db', JSON.stringify(data)); } catch(e) {}
-  updateDbCount();
-  alert(data.length > 0 ? `✅ Загружено ${data.length} записей` : '⚠️ Записи не найдены.\nПроверьте формат:\nКолонка 1 — ФИО, Колонка 2 — Гос. номер');
-}
-
-function updateDbCount() {
-  document.getElementById('db-count').textContent = database.length + ' записей';
-}
-
-// ===== АВТОДОПОЛНЕНИЕ =====
 function acSearch(field) {
-  const val = document.getElementById(field).value.trim().toUpperCase();
-  const list = document.getElementById('ac-' + field);
-  if (!database.length || !val) { list.classList.remove('open'); return; }
-
-  const matches = field === 'fio'
-    ? database.filter(d => d.fio.toUpperCase().includes(val)).slice(0, 8)
-    : database.filter(d => d.gosnomer.includes(val)).slice(0, 8);
-
-  if (!matches.length) { list.classList.remove('open'); return; }
-
-  const escaped = val.replace(/[-[\]{}()*+?.,\\^$|#\s]/g,'\\$&');
-  list.innerHTML = matches.map(d => {
-    const main = field === 'fio' ? d.fio : d.gosnomer;
-    const hi   = main.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
-    const mainE = main.replace(/'/g,"\\'");
-    return `<div class="autocomplete-item" onmousedown="acSelect('${field}','${mainE}')">
-      ${hi}
-    </div>`;
-  }).join('');
-  list.classList.add('open');
+  const val = document.getElementById(field).value.trim().toLowerCase();
+  const list = document.getElementById(field + '-list');
+  if (!val || val.length < 2 || !driverDatabase.length) { list.style.display = 'none'; return; }
+  const matches = driverDatabase.filter(d => d.fio.toLowerCase().includes(val)).slice(0, 6);
+  if (!matches.length) { list.style.display = 'none'; return; }
+  list.innerHTML = matches.map(d =>
+    `<div class="ac-item" onclick="acSelect('${field}', '${d.fio.replace(/'/g,"\\'")}', '${d.gosnomer.replace(/'/g,"\\'")}')">
+      <span>${d.fio}</span>${d.gosnomer ? `<span style="color:#888;font-size:13px">${d.gosnomer}</span>` : ''}
+    </div>`
+  ).join('');
+  list.style.display = 'block';
 }
 
-function acSelect(field, value) {
-  document.getElementById(field).value = value;
-  document.getElementById('ac-fio').classList.remove('open');
-  document.getElementById('ac-gosnomer').classList.remove('open');
+function acSelect(field, fio, gosnomer) {
+  document.getElementById('fio').value = fio;
+  if (gosnomer) document.getElementById('gosnomer').value = gosnomer;
+  document.getElementById(field + '-list').style.display = 'none';
 }
 
-function acHide(field) {
-  setTimeout(() => document.getElementById('ac-' + field).classList.remove('open'), 200);
-}
 
-// ===== ЛОГИКА =====
 function selectType(type) {
   selectedType = type;
   document.getElementById('btn-priem').classList.toggle('selected', type === 'приёмка');
@@ -719,6 +833,17 @@ async function sendReport() {
     if (motoHours) formData.append('moto_hours', motoHours);
   }
 
+  // Данные ТМЦ
+  const tmcKeys = ['fire','medkit','sign','jack','wrench'];
+  tmcKeys.forEach(k => {
+    const state = checkState['tmc_' + k];
+    if (state) {
+      formData.append('tmc_' + k, state);
+      const cmt = document.getElementById('tmc-comment-' + k).value.trim();
+      if (cmt) formData.append('tmc_' + k + '_comment', cmt);
+    }
+  });
+
   // Данные проверки документов
   if (checkState['doc']) {
     formData.append('check_doc_status', checkState['doc']);
@@ -783,6 +908,16 @@ function resetApp() {
   });
   const docComment = document.getElementById('doc-comment');
   if(docComment) { docComment.value = ''; docComment.classList.remove('show'); }
+
+  // Сброс ТМЦ
+  ['fire','medkit','sign','jack','wrench'].forEach(k => {
+    ['ok','warn','bad'].forEach(s => {
+      const el = document.getElementById('tmc-' + s + '-' + k);
+      if(el) el.classList.remove('active-ok','active-warn','active-bad');
+    });
+    const cmt = document.getElementById('tmc-comment-' + k);
+    if(cmt) { cmt.value = ''; cmt.classList.remove('show'); }
+  });
   // Сброс типа прицепа
   ['tt-tent','tt-iso','tt-ref'].forEach(id => {
     const el = document.getElementById(id); if(el) el.classList.remove('selected');
@@ -821,6 +956,9 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo(0,0);
+  // Кнопка админа — только на главном экране
+  const btnAdmin = document.getElementById('btn-admin');
+  if (btnAdmin) btnAdmin.style.display = (id === 'screen0') ? 'flex' : 'none';
 }
 
 // ===== МОДАЛЬНОЕ ОКНО БАЗЫ =====
@@ -917,11 +1055,180 @@ function toggleInfoPopup(e) {
   e.stopPropagation();
   const popup = document.getElementById('info-popup');
   popup.classList.toggle('open');
+  document.getElementById('info-popup-tmc').classList.remove('open');
 }
+
+function toggleTmcInfoPopup(e) {
+  e.stopPropagation();
+  const popup = document.getElementById('info-popup-tmc');
+  popup.classList.toggle('open');
+  document.getElementById('info-popup').classList.remove('open');
+}
+
 document.addEventListener('click', () => {
-  const popup = document.getElementById('info-popup');
-  if (popup) popup.classList.remove('open');
+  ['info-popup', 'info-popup-tmc'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('open');
+  });
 });
+
+// ===== Администратор =====
+const ADMIN_PASSWORD_KEY = 'adminPassword';
+const ADMIN_SESSION_KEY  = 'adminSession';
+const DEFAULT_ADMIN_PASS = 'admin123';
+
+function getAdminPassword() {
+  return localStorage.getItem(ADMIN_PASSWORD_KEY) || DEFAULT_ADMIN_PASS;
+}
+
+function openAdminPanel() {
+  // Если сессия активна — сразу открываем панель
+  if (sessionStorage.getItem(ADMIN_SESSION_KEY) === '1') {
+    showAdminPanel();
+    return;
+  }
+  // Иначе — запрашиваем пароль
+  document.getElementById('admin-password-input').value = '';
+  document.getElementById('admin-login-error').style.display = 'none';
+  document.getElementById('admin-login-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('admin-password-input').focus(), 100);
+}
+
+function closeAdminLogin() {
+  document.getElementById('admin-login-modal').style.display = 'none';
+}
+
+function checkAdminPassword() {
+  const input = document.getElementById('admin-password-input').value;
+  if (input === getAdminPassword()) {
+    sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
+    closeAdminLogin();
+    showAdminPanel();
+  } else {
+    document.getElementById('admin-login-error').style.display = 'block';
+    document.getElementById('admin-password-input').value = '';
+    document.getElementById('admin-password-input').focus();
+  }
+}
+
+function showAdminPanel() {
+  document.getElementById('admin-panel-modal').style.display = 'flex';
+  renderAdminDbPreview();
+}
+
+function closeAdminPanel() {
+  document.getElementById('admin-panel-modal').style.display = 'none';
+}
+
+function adminLogout() {
+  sessionStorage.removeItem(ADMIN_SESSION_KEY);
+  closeAdminPanel();
+}
+
+function changeAdminPassword() {
+  const newPass = document.getElementById('admin-new-password').value.trim();
+  const statusEl = document.getElementById('admin-pass-status');
+  if (!newPass || newPass.length < 4) {
+    statusEl.style.display = 'block';
+    statusEl.style.color = '#dc2626';
+    statusEl.textContent = 'Пароль должен быть не менее 4 символов';
+    return;
+  }
+  localStorage.setItem(ADMIN_PASSWORD_KEY, newPass);
+  document.getElementById('admin-new-password').value = '';
+  statusEl.style.display = 'block';
+  statusEl.style.color = '#16a34a';
+  statusEl.textContent = '✅ Пароль успешно изменён';
+  setTimeout(() => statusEl.style.display = 'none', 3000);
+}
+
+// ===== База водителей (перенесена в админ) =====
+let driverDatabase = [];
+
+function adminLoadDatabase(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  const name = file.name.toLowerCase();
+  const statusEl = document.getElementById('admin-db-status');
+
+  if (name.endsWith('.csv')) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const lines = e.target.result.split('\n').filter(l => l.trim());
+      driverDatabase = lines.map(l => {
+        const parts = l.split(',');
+        return { fio: (parts[0]||'').trim().replace(/"/g,''), gosnomer: (parts[1]||'').trim().replace(/"/g,'') };
+      }).filter(d => d.fio);
+      saveAndShowDb(statusEl, file.name);
+    };
+    reader.readAsText(file, 'utf-8');
+  } else {
+    // XLSX через SheetJS
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        driverDatabase = rows.map(r => ({
+          fio: String(r[0]||'').trim(),
+          gosnomer: String(r[1]||'').trim()
+        })).filter(d => d.fio && d.fio !== 'undefined');
+        saveAndShowDb(statusEl, file.name);
+      } catch(e) {
+        statusEl.style.display = 'block';
+        statusEl.style.color = '#dc2626';
+        statusEl.textContent = 'Ошибка чтения файла: ' + e.message;
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function saveAndShowDb(statusEl, fileName) {
+  try { localStorage.setItem('driverDb', JSON.stringify(driverDatabase)); } catch(e) {}
+  statusEl.style.display = 'block';
+  statusEl.style.color = '#16a34a';
+  statusEl.textContent = `✅ Загружено ${driverDatabase.length} записей из ${fileName}`;
+  renderAdminDbPreview();
+}
+
+function adminClearDatabase() {
+  if (!confirm('Очистить базу водителей?')) return;
+  driverDatabase = [];
+  localStorage.removeItem('driverDb');
+  const statusEl = document.getElementById('admin-db-status');
+  statusEl.style.display = 'block';
+  statusEl.style.color = '#dc2626';
+  statusEl.textContent = 'База водителей очищена';
+  renderAdminDbPreview();
+}
+
+function renderAdminDbPreview() {
+  const previewEl = document.getElementById('admin-db-preview');
+  if (!driverDatabase.length) {
+    previewEl.innerHTML = '<div style="font-size:13px;color:#aaa;font-style:italic">База пустая — загрузите файл</div>';
+    return;
+  }
+  const show = driverDatabase.slice(0, 5);
+  let html = `<div style="font-size:12px;color:#64748b;margin-bottom:6px">Первые записи (всего: ${driverDatabase.length}):</div>`;
+  html += '<div style="background:white;border:1.5px solid #e8e8e8;border-radius:8px;overflow:hidden">';
+  show.forEach((d, i) => {
+    html += `<div style="padding:6px 12px;font-size:13px;${i < show.length-1 ? 'border-bottom:1px solid #f0f0f0' : ''}">${d.fio}${d.gosnomer ? ' — ' + d.gosnomer : ''}</div>`;
+  });
+  if (driverDatabase.length > 5) html += `<div style="padding:6px 12px;font-size:12px;color:#888">...ещё ${driverDatabase.length-5} записей</div>`;
+  html += '</div>';
+  previewEl.innerHTML = html;
+}
+
+// Загружаем базу из localStorage при старте
+(function() {
+  try {
+    const saved = localStorage.getItem('driverDb');
+    if (saved) driverDatabase = JSON.parse(saved);
+  } catch(e) {}
+})();
 
 // ===== Камера: capture только для Android =====
 (function() {

@@ -119,7 +119,7 @@ def analyze_photos_with_ai(photo_bytes_dict):
     if not ANTHROPIC_KEY:
         return None
     content = [{'type': 'text', 'text': (
-        'Ты эксперт по осмотру транспортных средств на наличие повреждений и дефектов которые были получены в результате ДТП и не только. '
+        'Ты эксперт по осмотру транспортных средств. '
         'Осмотри каждое фото и выяви ТОЛЬКО видимые повреждения: вмятины, царапины, трещины, сколы краски, сломанные элементы. '
         'Формат ответа — строго следующий:\n'
         '🔍 АНАЛИЗ ПОВРЕЖДЕНИЙ\n'
@@ -281,6 +281,19 @@ def submit():
         type_    = request.form.get('type', '').strip()
         date     = request.form.get('date', '').strip()
         vehicle_type  = request.form.get('vehicle_type', 'Тягач').strip()
+
+        # ТМЦ
+        tmc_keys = ['fire','medkit','sign','jack','wrench']
+        tmc_labels = {'fire':'🧯 Огнетушитель','medkit':'🩺 Аптечка','sign':'⚠️ Знак ав. остановки','jack':'🔧 Домкрат','wrench':'🔩 Ключ балонный'}
+        tmc_icons  = {'ok':'✅','warn':'⚠️','bad':'🔴'}
+        tmc_line = ''
+        for k in tmc_keys:
+            val = request.form.get(f'tmc_{k}', '').strip()
+            if val:
+                icon = tmc_icons.get(val, '')
+                cmt  = request.form.get(f'tmc_{k}_comment', '').strip()
+                tmc_line += f'\n{icon} {tmc_labels[k]}'
+                if cmt: tmc_line += f' — {cmt}'
         trailer_type  = request.form.get('trailer_type', '').strip()
         moto_hours    = request.form.get('moto_hours', '').strip()
         mileage       = request.form.get('mileage', '').strip()
@@ -432,7 +445,7 @@ def submit():
                 print(f'Background error: {e}')
                 import traceback; traceback.print_exc()
 
-        extra_lines = trailer_line + doc_line
+        extra_lines = trailer_line + doc_line + (('\n\n📦 *ТМЦ:*' + tmc_line) if tmc_line else '')
         threading.Thread(
             target=run_background,
             args=(photo_bytes, gosnomer, type_, date, mileage_str, fio, db_saved, extra_lines),
