@@ -653,24 +653,40 @@ function loadDatabase(input) {
   adminLoadDatabase(input);
 }
 
+function acGetList(field) {
+  // Поддерживаем оба варианта id: 'ac-fio' и 'fio-list'
+  return document.getElementById('ac-' + field) || document.getElementById(field + '-list');
+}
+
 function acSearch(field) {
   const val = document.getElementById(field).value.trim().toLowerCase();
-  const list = document.getElementById(field + '-list');
+  const list = acGetList(field);
+  if (!list) return;
   if (!val || val.length < 2 || !driverDatabase.length) { list.style.display = 'none'; return; }
-  const matches = driverDatabase.filter(d => d.fio.toLowerCase().includes(val)).slice(0, 6);
+  const matches = driverDatabase.filter(d => d.fio && d.fio.toLowerCase().includes(val)).slice(0, 6);
   if (!matches.length) { list.style.display = 'none'; return; }
-  list.innerHTML = matches.map(d =>
-    `<div class="ac-item" onclick="acSelect('${field}', '${d.fio.replace(/'/g,"\\'")}', '${d.gosnomer.replace(/'/g,"\\'")}')">
-      <span>${d.fio}</span>${d.gosnomer ? `<span style="color:#888;font-size:13px">${d.gosnomer}</span>` : ''}
-    </div>`
-  ).join('');
+  list.innerHTML = matches.map(d => {
+    const safeFio = d.fio.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const safeGos = (d.gosnomer||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `<div class="ac-item" onclick="acSelect('${field}','${safeFio}','${safeGos}')">
+      <span>${d.fio}</span>${d.gosnomer ? `<span style="color:#888;font-size:13px;margin-left:8px">${d.gosnomer}</span>` : ''}
+    </div>`;
+  }).join('');
   list.style.display = 'block';
 }
 
 function acSelect(field, fio, gosnomer) {
   document.getElementById('fio').value = fio;
   if (gosnomer) document.getElementById('gosnomer').value = gosnomer;
-  document.getElementById(field + '-list').style.display = 'none';
+  const list = acGetList(field);
+  if (list) list.style.display = 'none';
+}
+
+function acHide(field) {
+  setTimeout(() => {
+    const list = acGetList(field);
+    if (list) list.style.display = 'none';
+  }, 200);
 }
 
 
