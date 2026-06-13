@@ -654,7 +654,6 @@ function loadDatabase(input) {
 }
 
 function acGetList(field) {
-  // Поддерживаем оба варианта id: 'ac-fio' и 'fio-list'
   return document.getElementById('ac-' + field) || document.getElementById(field + '-list');
 }
 
@@ -662,23 +661,45 @@ function acSearch(field) {
   const val = document.getElementById(field).value.trim().toLowerCase();
   const list = acGetList(field);
   if (!list) return;
-  if (!val || val.length < 2 || !driverDatabase.length) { list.style.display = 'none'; return; }
-  const matches = driverDatabase.filter(d => d.fio && d.fio.toLowerCase().includes(val)).slice(0, 6);
-  if (!matches.length) { list.style.display = 'none'; return; }
-  list.innerHTML = matches.map(d => {
-    const safeFio = d.fio.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const safeGos = (d.gosnomer||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return `<div class="ac-item" onclick="acSelect('${field}','${safeFio}','${safeGos}')">
-      <span>${d.fio}</span>${d.gosnomer ? `<span style="color:#888;font-size:13px;margin-left:8px">${d.gosnomer}</span>` : ''}
-    </div>`;
-  }).join('');
-  list.style.display = 'block';
+  if (!val || val.length < 1 || !driverDatabase.length) { list.style.display = 'none'; return; }
+
+  let matches = [];
+  if (field === 'fio') {
+    // Поиск только по ФИО, показываем только ФИО
+    matches = driverDatabase
+      .filter(d => d.fio && d.fio.toLowerCase().includes(val))
+      .slice(0, 6);
+    list.innerHTML = matches.map(d => {
+      const safe = d.fio.replace(/'/g, "\\'");
+      return `<div class="ac-item" onclick="acSelectFio('${safe}')">
+        <span>${d.fio}</span>
+      </div>`;
+    }).join('');
+  } else if (field === 'gosnomer') {
+    // Поиск только по гос. номеру, показываем только гос. номер
+    matches = driverDatabase
+      .filter(d => d.gosnomer && d.gosnomer.toLowerCase().includes(val))
+      .slice(0, 6);
+    list.innerHTML = matches.map(d => {
+      const safe = d.gosnomer.replace(/'/g, "\\'");
+      return `<div class="ac-item" onclick="acSelectGos('${safe}')">
+        <span>${d.gosnomer}</span>
+      </div>`;
+    }).join('');
+  }
+
+  list.style.display = matches.length ? 'block' : 'none';
 }
 
-function acSelect(field, fio, gosnomer) {
+function acSelectFio(fio) {
   document.getElementById('fio').value = fio;
-  // Гос. номер не подставляем — водитель вводит сам
-  const list = acGetList(field);
+  const list = acGetList('fio');
+  if (list) list.style.display = 'none';
+}
+
+function acSelectGos(gosnomer) {
+  document.getElementById('gosnomer').value = gosnomer.toUpperCase();
+  const list = acGetList('gosnomer');
   if (list) list.style.display = 'none';
 }
 
