@@ -282,18 +282,15 @@ def submit():
         date     = request.form.get('date', '').strip()
         vehicle_type  = request.form.get('vehicle_type', 'Тягач').strip()
 
-        # ТМЦ
-        tmc_keys = ['fire','medkit','sign','jack','wrench']
-        tmc_labels = {'fire':'🧯 Огнетушитель','medkit':'🩺 Аптечка','sign':'⚠️ Знак ав. остановки','jack':'🔧 Домкрат','wrench':'🔩 Ключ балонный'}
-        tmc_icons  = {'ok':'✅','warn':'⚠️','bad':'🔴'}
+        # ТМЦ — динамический список
+        tmc_icons = {'ok': '✅', 'warn': '⚠️', 'bad': '🔴'}
+        tmc_items_raw = request.form.getlist('tmc_item')
         tmc_line = ''
-        for k in tmc_keys:
-            val = request.form.get(f'tmc_{k}', '').strip()
-            if val:
-                icon = tmc_icons.get(val, '')
-                cmt  = request.form.get(f'tmc_{k}_comment', '').strip()
-                tmc_line += f'\n{icon} {tmc_labels[k]}'
-                if cmt: tmc_line += f' — {cmt}'
+        for item_str in tmc_items_raw:
+            if ':' in item_str:
+                label, status = item_str.rsplit(':', 1)
+                icon = tmc_icons.get(status.strip(), '')
+                tmc_line += f'\n{icon} {label.strip()}'
         trailer_type  = request.form.get('trailer_type', '').strip()
         moto_hours    = request.form.get('moto_hours', '').strip()
         mileage       = request.form.get('mileage', '').strip()

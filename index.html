@@ -353,6 +353,34 @@
       <div id="admin-db-preview" style="margin-top:10px"></div>
     </div>
 
+    <!-- Секция: Управление ТМЦ -->
+    <div class="admin-section">
+      <div class="admin-section-title">📦 Проверка ТМЦ</div>
+      <div class="admin-section-desc">Выберите раздел и настройте список пунктов.</div>
+
+      <!-- Табы выбора раздела -->
+      <div style="display:flex;gap:8px;margin-top:12px;margin-bottom:12px">
+        <button id="tmc-tab-truck" onclick="adminSetTmcTab('truck')"
+          style="flex:1;padding:8px;border:2px solid #1a1a2e;border-radius:8px;background:#1a1a2e;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+          🚛 Автомобиль
+        </button>
+        <button id="tmc-tab-trailer" onclick="adminSetTmcTab('trailer')"
+          style="flex:1;padding:8px;border:2px solid #e8e8e8;border-radius:8px;background:white;color:#555;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+          🚚 Прицеп
+        </button>
+      </div>
+
+      <!-- Список пунктов -->
+      <div id="admin-tmc-list"></div>
+
+      <!-- Добавить новый -->
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+        <input type="text" id="admin-tmc-new-name" placeholder="Название нового пункта"
+          style="flex:1;padding:9px 12px;border:2px solid #e8e8e8;border-radius:8px;font-size:14px;outline:none;font-family:inherit">
+        <button class="btn-admin-action" onclick="adminAddTmcItem()" style="white-space:nowrap">➕ Добавить</button>
+      </div>
+    </div>
+
     <!-- Секция: Смена пароля -->
     <div class="admin-section">
       <div class="admin-section-title">🔑 Пароль администратора</div>
@@ -440,7 +468,7 @@
     </div>
 
 
-    <!-- Блок ТМЦ -->
+    <!-- Блок ТМЦ (строки рендерятся динамически) -->
     <div class="check-section" id="check-tmc-section" style="margin-top:16px">
       <div class="check-header">
         <span class="check-title">Проверка ТМЦ</span>
@@ -461,83 +489,7 @@
           </div>
         </button>
       </div>
-        <div class="check-row" style="margin-top:10px">
-          <span class="check-label">🧯 Огнетушитель</span>
-          <div class="check-icons">
-            <button class="check-icon" id="tmc-ok-fire" onclick="selectCheck('tmc_fire','ok')" title="Есть">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
-            </button>
-            <button class="check-icon" id="tmc-warn-fire" onclick="selectCheck('tmc_fire','warn')" title="Замечание">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </button>
-            <button class="check-icon" id="tmc-bad-fire" onclick="selectCheck('tmc_fire','bad')" title="Отсутствует/повреждён">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </button>
-          </div>
-        </div>
-        <textarea class="check-comment" id="tmc-comment-fire" placeholder="Комментарий по пункту огнетушитель..."></textarea>
-        <div class="check-row" style="margin-top:10px">
-          <span class="check-label">🩺 Аптечка</span>
-          <div class="check-icons">
-            <button class="check-icon" id="tmc-ok-medkit" onclick="selectCheck('tmc_medkit','ok')" title="Есть">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
-            </button>
-            <button class="check-icon" id="tmc-warn-medkit" onclick="selectCheck('tmc_medkit','warn')" title="Замечание">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </button>
-            <button class="check-icon" id="tmc-bad-medkit" onclick="selectCheck('tmc_medkit','bad')" title="Отсутствует/повреждён">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </button>
-          </div>
-        </div>
-        <textarea class="check-comment" id="tmc-comment-medkit" placeholder="Комментарий по пункту аптечка..."></textarea>
-        <div class="check-row" style="margin-top:10px">
-          <span class="check-label">⚠️ Знак аварийной остановки</span>
-          <div class="check-icons">
-            <button class="check-icon" id="tmc-ok-sign" onclick="selectCheck('tmc_sign','ok')" title="Есть">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
-            </button>
-            <button class="check-icon" id="tmc-warn-sign" onclick="selectCheck('tmc_sign','warn')" title="Замечание">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </button>
-            <button class="check-icon" id="tmc-bad-sign" onclick="selectCheck('tmc_sign','bad')" title="Отсутствует/повреждён">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </button>
-          </div>
-        </div>
-        <textarea class="check-comment" id="tmc-comment-sign" placeholder="Комментарий по пункту знак аварийной остановки..."></textarea>
-        <div class="check-row" style="margin-top:10px">
-          <span class="check-label">🔧 Домкрат</span>
-          <div class="check-icons">
-            <button class="check-icon" id="tmc-ok-jack" onclick="selectCheck('tmc_jack','ok')" title="Есть">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
-            </button>
-            <button class="check-icon" id="tmc-warn-jack" onclick="selectCheck('tmc_jack','warn')" title="Замечание">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </button>
-            <button class="check-icon" id="tmc-bad-jack" onclick="selectCheck('tmc_jack','bad')" title="Отсутствует/повреждён">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </button>
-          </div>
-        </div>
-        <textarea class="check-comment" id="tmc-comment-jack" placeholder="Комментарий по пункту домкрат..."></textarea>
-        <div class="check-row" style="margin-top:10px">
-          <span class="check-label">🔩 Ключ балонный</span>
-          <div class="check-icons">
-            <button class="check-icon" id="tmc-ok-wrench" onclick="selectCheck('tmc_wrench','ok')" title="Есть">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
-            </button>
-            <button class="check-icon" id="tmc-warn-wrench" onclick="selectCheck('tmc_wrench','warn')" title="Замечание">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </button>
-            <button class="check-icon" id="tmc-bad-wrench" onclick="selectCheck('tmc_wrench','bad')" title="Отсутствует/повреждён">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </button>
-          </div>
-        </div>
-        <textarea class="check-comment" id="tmc-comment-wrench" placeholder="Комментарий по пункту ключ балонный..."></textarea>
     </div>
-
 
     <label>ФИО водителя</label>
     <div class="autocomplete-wrap">
@@ -833,14 +785,13 @@ async function sendReport() {
     if (motoHours) formData.append('moto_hours', motoHours);
   }
 
-  // Данные ТМЦ
-  const tmcKeys = ['fire','medkit','sign','jack','wrench'];
-  tmcKeys.forEach(k => {
-    const state = checkState['tmc_' + k];
+  // Данные ТМЦ (из динамического конфига)
+  tmcConfig.filter(i => i.visible).forEach(item => {
+    const state = checkState['tmc_' + item.key];
     if (state) {
-      formData.append('tmc_' + k, state);
-      const cmt = document.getElementById('tmc-comment-' + k).value.trim();
-      if (cmt) formData.append('tmc_' + k + '_comment', cmt);
+      formData.append('tmc_item', item.label + ':' + state);
+      const cmt = document.getElementById('tmc-comment-' + item.key);
+      if (cmt && cmt.value.trim()) formData.append('tmc_item_comment_' + item.key, cmt.value.trim());
     }
   });
 
@@ -910,13 +861,14 @@ function resetApp() {
   if(docComment) { docComment.value = ''; docComment.classList.remove('show'); }
 
   // Сброс ТМЦ
-  ['fire','medkit','sign','jack','wrench'].forEach(k => {
+  tmcConfig.forEach(item => {
     ['ok','warn','bad'].forEach(s => {
-      const el = document.getElementById('tmc-' + s + '-' + k);
+      const el = document.getElementById('tmc-' + s + '-' + item.key);
       if(el) el.classList.remove('active-ok','active-warn','active-bad');
     });
-    const cmt = document.getElementById('tmc-comment-' + k);
+    const cmt = document.getElementById('tmc-comment-' + item.key);
     if(cmt) { cmt.value = ''; cmt.classList.remove('show'); }
+    delete checkState['tmc_' + item.key];
   });
   // Сброс типа прицепа
   ['tt-tent','tt-iso','tt-ref'].forEach(id => {
@@ -1001,6 +953,7 @@ function selectVehicle(type) {
     document.getElementById('mileage').removeAttribute('required');
     document.getElementById('trailer-type-section').style.display = 'block';
     document.getElementById('check-docs-section').style.display = '';
+    document.getElementById('check-tmc-section').style.display = 'none';
     document.getElementById('item-sleep').style.display = 'none';
     document.getElementById('label-salon').textContent = 'Внутри прицепа';
     document.getElementById('icon-salon').innerHTML = '📦';
@@ -1019,6 +972,7 @@ function selectVehicle(type) {
     document.getElementById('mileage').placeholder = '214400';
     document.getElementById('trailer-type-section').style.display = 'none';
     document.getElementById('check-docs-section').style.display = '';
+    document.getElementById('check-tmc-section').style.display = '';
     document.getElementById('item-sleep').style.display = 'none';
     document.getElementById('label-salon').textContent = 'Салон';
     document.getElementById('icon-salon').innerHTML = '🪑';
@@ -1026,6 +980,7 @@ function selectVehicle(type) {
   }
 
   updateProgress();
+  renderTmcSection();
   showScreen('screen1');
 }
 
@@ -1034,22 +989,29 @@ const checkState = {};
 
 function selectCheck(group, status) {
   checkState[group] = status;
-  const ids = ['ok','warn','bad'];
-  ids.forEach(s => {
-    const btn = document.getElementById(`${group}-${s}`);
-    btn.classList.remove('active-ok','active-warn','active-bad');
+  ['ok','warn','bad'].forEach(s => {
+    // Поддерживаем оба формата id: group-s (doc) и tmc-s-key (TMC)
+    const btn = document.getElementById(`${group}-${s}`)
+              || document.getElementById(`tmc-${s}-${group.replace('tmc_','')}`);
+    if (btn) btn.classList.remove('active-ok','active-warn','active-bad');
   });
-  document.getElementById(`${group}-${status}`).classList.add(`active-${status}`);
+  const activeBtn = document.getElementById(`${group}-${status}`)
+                 || document.getElementById(`tmc-${status}-${group.replace('tmc_','')}`);
+  if (activeBtn) activeBtn.classList.add(`active-${status}`);
 
-  const comment = document.getElementById(`${group}-comment`);
-  if (status === 'warn' || status === 'bad') {
-    comment.classList.add('show');
-    comment.focus();
-  } else {
-    comment.classList.remove('show');
-    comment.value = '';
+  const comment = document.getElementById(`${group}-comment`)
+               || document.getElementById(`tmc-comment-${group.replace('tmc_','')}`);
+  if (comment) {
+    if (status === 'warn' || status === 'bad') {
+      comment.classList.add('show');
+      comment.focus();
+    } else {
+      comment.classList.remove('show');
+      comment.value = '';
+    }
   }
 }
+
 
 function toggleInfoPopup(e) {
   e.stopPropagation();
@@ -1071,6 +1033,153 @@ document.addEventListener('click', () => {
     if (el) el.classList.remove('open');
   });
 });
+
+// ===== Конфигурация ТМЦ (section: 'truck'|'trailer'|'both') =====
+const TMC_DEFAULT = [
+  { key: 'fire',   icon: '🧯', label: 'Огнетушитель',            section: 'truck', visible: true },
+  { key: 'medkit', icon: '🩺', label: 'Аптечка',                 section: 'truck', visible: true },
+  { key: 'sign',   icon: '⚠️', label: 'Знак аварийной остановки', section: 'truck', visible: true },
+  { key: 'jack',   icon: '🔧', label: 'Домкрат',                 section: 'truck', visible: true },
+  { key: 'wrench', icon: '🔩', label: 'Ключ балонный',            section: 'truck', visible: true },
+];
+
+let tmcConfig = [];
+
+function loadTmcConfig() {
+  try {
+    const saved = localStorage.getItem('tmcConfig');
+    tmcConfig = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(TMC_DEFAULT));
+  } catch(e) {
+    tmcConfig = JSON.parse(JSON.stringify(TMC_DEFAULT));
+  }
+}
+
+function saveTmcConfig() {
+  localStorage.setItem('tmcConfig', JSON.stringify(tmcConfig));
+}
+
+function renderTmcSection() {
+  const section = document.getElementById('check-tmc-section');
+  if (!section) return;
+  // Удаляем старые динамические строки
+  section.querySelectorAll('.tmc-row-wrap').forEach(el => el.remove());
+  // Фильтруем по текущему типу ТС и visible
+  const items = tmcConfig.filter(item => {
+    if (!item.visible) return false;
+    if (item.section === 'both') return true;
+    if (item.section === 'truck') return vehicleType === 'truck';
+    if (item.section === 'trailer') return vehicleType === 'trailer';
+    return true;
+  });
+  items.forEach(item => {
+    const wrap = document.createElement('div');
+    wrap.className = 'tmc-row-wrap';
+    wrap.innerHTML = `
+      <div class="check-row" style="margin-top:10px">
+        <span class="check-label">${item.icon} ${item.label}</span>
+        <div class="check-icons">
+          <button class="check-icon" id="tmc-ok-${item.key}" onclick="selectCheck('tmc_${item.key}','ok')" title="Есть">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
+          </button>
+          <button class="check-icon" id="tmc-warn-${item.key}" onclick="selectCheck('tmc_${item.key}','warn')" title="Замечание">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </button>
+          <button class="check-icon" id="tmc-bad-${item.key}" onclick="selectCheck('tmc_${item.key}','bad')" title="Отсутствует">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </button>
+        </div>
+      </div>
+      <textarea class="check-comment" id="tmc-comment-${item.key}" placeholder="Комментарий..."></textarea>
+    `;
+    section.appendChild(wrap);
+  });
+  // Скрываем секцию если нет пунктов для текущего типа ТС
+  section.style.display = items.length ? '' : 'none';
+}
+
+// ===== Управление ТМЦ в админке =====
+let adminTmcTab = 'truck'; // текущий активный таб
+
+function adminSetTmcTab(tab) {
+  adminTmcTab = tab;
+  // Стили табов
+  const truckBtn   = document.getElementById('tmc-tab-truck');
+  const trailerBtn = document.getElementById('tmc-tab-trailer');
+  if (truckBtn && trailerBtn) {
+    const active   = 'border:2px solid #1a1a2e;background:#1a1a2e;color:white';
+    const inactive = 'border:2px solid #e8e8e8;background:white;color:#555';
+    truckBtn.style.cssText   = truckBtn.style.cssText.replace(/border:[^;]+;background:[^;]+;color:[^;]+/, tab === 'truck' ? active : inactive);
+    trailerBtn.style.cssText = trailerBtn.style.cssText.replace(/border:[^;]+;background:[^;]+;color:[^;]+/, tab === 'trailer' ? active : inactive);
+    // Проще через setAttribute
+    if (tab === 'truck') {
+      truckBtn.style.borderColor = '#1a1a2e'; truckBtn.style.background = '#1a1a2e'; truckBtn.style.color = 'white';
+      trailerBtn.style.borderColor = '#e8e8e8'; trailerBtn.style.background = 'white'; trailerBtn.style.color = '#555';
+    } else {
+      trailerBtn.style.borderColor = '#1a1a2e'; trailerBtn.style.background = '#1a1a2e'; trailerBtn.style.color = 'white';
+      truckBtn.style.borderColor = '#e8e8e8'; truckBtn.style.background = 'white'; truckBtn.style.color = '#555';
+    }
+  }
+  renderAdminTmcList();
+}
+
+function adminAddTmcItem() {
+  const nameEl = document.getElementById('admin-tmc-new-name');
+  const name = nameEl.value.trim();
+  if (!name) { nameEl.focus(); return; }
+  const key = 'custom_' + Date.now();
+  tmcConfig.push({ key, icon: '📋', label: name, section: adminTmcTab, visible: true });
+  saveTmcConfig();
+  renderTmcSection();
+  renderAdminTmcList();
+  nameEl.value = '';
+  nameEl.focus();
+}
+
+function adminToggleTmcItem(key) {
+  const item = tmcConfig.find(i => i.key === key);
+  if (item) { item.visible = !item.visible; saveTmcConfig(); renderTmcSection(); renderAdminTmcList(); }
+}
+
+function adminDeleteTmcItem(key) {
+  tmcConfig = tmcConfig.filter(i => i.key !== key);
+  saveTmcConfig();
+  renderTmcSection();
+  renderAdminTmcList();
+}
+
+function adminRenameTmcItem(key, newLabel) {
+  const item = tmcConfig.find(i => i.key === key);
+  if (item && newLabel.trim()) { item.label = newLabel.trim(); saveTmcConfig(); renderTmcSection(); }
+}
+
+function renderAdminTmcList() {
+  const listEl = document.getElementById('admin-tmc-list');
+  if (!listEl) return;
+  // Показываем только пункты текущего таба
+  const items = tmcConfig.filter(i => i.section === adminTmcTab || i.section === 'both');
+  if (!items.length) {
+    listEl.innerHTML = '<div style="font-size:13px;color:#aaa;font-style:italic;padding:8px 0">Нет пунктов для этого раздела</div>';
+    return;
+  }
+  listEl.innerHTML = items.map(item => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0">
+      <span style="font-size:16px;flex-shrink:0">${item.icon}</span>
+      <input type="text" value="${item.label.replace(/"/g,'&quot;')}"
+        style="flex:1;padding:6px 10px;border:1.5px solid #e8e8e8;border-radius:6px;font-size:13px;outline:none;font-family:inherit"
+        onchange="adminRenameTmcItem('${item.key}', this.value)">
+      <button onclick="adminToggleTmcItem('${item.key}')"
+        title="${item.visible ? 'Скрыть' : 'Показать'}"
+        style="padding:5px 10px;border:1.5px solid ${item.visible?'#16a34a':'#e8e8e8'};border-radius:6px;background:${item.visible?'#dcfce7':'#f8fafc'};color:${item.visible?'#16a34a':'#94a3b8'};font-size:13px;cursor:pointer;font-family:inherit;flex-shrink:0">
+        ${item.visible ? '👁' : '🚫'}
+      </button>
+      <button onclick="adminDeleteTmcItem('${item.key}')"
+        title="Удалить"
+        style="padding:5px 10px;border:1.5px solid #fca5a5;border-radius:6px;background:#fee2e2;color:#dc2626;font-size:13px;cursor:pointer;font-family:inherit;flex-shrink:0">
+        🗑
+      </button>
+    </div>
+  `).join('');
+}
 
 // ===== Администратор =====
 const ADMIN_PASSWORD_KEY = 'adminPassword';
@@ -1114,6 +1223,7 @@ function checkAdminPassword() {
 function showAdminPanel() {
   document.getElementById('admin-panel-modal').style.display = 'flex';
   renderAdminDbPreview();
+  adminSetTmcTab(adminTmcTab); // восстанавливаем активный таб
 }
 
 function closeAdminPanel() {
@@ -1222,12 +1332,17 @@ function renderAdminDbPreview() {
   previewEl.innerHTML = html;
 }
 
-// Загружаем базу из localStorage при старте
+// Загружаем базу и конфигурацию ТМЦ при старте
 (function() {
   try {
     const saved = localStorage.getItem('driverDb');
     if (saved) driverDatabase = JSON.parse(saved);
   } catch(e) {}
+  loadTmcConfig();
+  // renderTmcSection вызовем после загрузки DOM
+  document.addEventListener('DOMContentLoaded', () => {
+    renderTmcSection();
+  });
 })();
 
 // ===== Камера: capture только для Android =====
