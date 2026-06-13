@@ -677,7 +677,7 @@ function acSearch(field) {
 
 function acSelect(field, fio, gosnomer) {
   document.getElementById('fio').value = fio;
-  if (gosnomer) document.getElementById('gosnomer').value = gosnomer;
+  // Гос. номер не подставляем — водитель вводит сам
   const list = acGetList(field);
   if (list) list.style.display = 'none';
 }
