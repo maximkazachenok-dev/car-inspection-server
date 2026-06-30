@@ -118,29 +118,26 @@ def get_inspection_from_db(gosnomer, date):
 def analyze_photos_with_ai(photo_bytes_dict):
     if not ANTHROPIC_KEY:
         return None
-    content = [{'type': 'text', 'text': (
+    zone_labels = list(photo_bytes_dict.keys())
+    zones_format = '\n'.join(f'{lbl}: [повреждения или "✅ без повреждений"]' for lbl in zone_labels)
+    prompt_text = (
         'Ты эксперт по осмотру транспортных средств. '
         'Осмотри каждое фото и выяви ТОЛЬКО видимые повреждения: вмятины, царапины, трещины, сколы краски, сломанные элементы. '
         'Формат ответа — строго следующий:\n'
         '🔍 АНАЛИЗ ПОВРЕЖДЕНИЙ\n'
-        'Спереди: [повреждения или "✅ без повреждений"]\n'
-        'Сзади: [повреждения или "✅ без повреждений"]\n'
-        'Левый бок: [повреждения или "✅ без повреждений"]\n'
-        'Правый бок: [повреждения или "✅ без повреждений"]\n'
-        'Салон: [повреждения или "✅ без повреждений"]\n'
+        + zones_format + '\n'
         'Итог: [1-2 предложения]\n\n'
         'Правила:\n'
         '- Каждая зона — одна строка, максимум 10 слов\n'
         '- Пиши только факты, никаких рассуждений\n'
         '- Если зоны нет на фото — пропусти её\n'
         'Отвечай только на русском языке.'
-    )}]
-    for zone in ZONE_ORDER:
-        if zone not in photo_bytes_dict:
-            continue
-        compressed = compress_image(photo_bytes_dict[zone])
+    )
+    content = [{'type': 'text', 'text': prompt_text}]
+    for label, fb in photo_bytes_dict.items():
+        compressed = compress_image(fb)
         img_b64 = base64.standard_b64encode(compressed).decode('utf-8')
-        content.append({'type': 'text', 'text': f'Зона: {ZONE_LABELS[zone]}'})
+        content.append({'type': 'text', 'text': f'Зона: {label}'})
         content.append({'type': 'image', 'source': {'type': 'base64', 'media_type': 'image/jpeg', 'data': img_b64}})
     try:
         resp = requests.post(
@@ -291,6 +288,14 @@ def submit():
                 label, status = item_str.rsplit(':', 1)
                 icon = tmc_icons.get(status.strip(), '')
                 tmc_line += f'\n{icon} {label.strip()}'
+
+        # Доп. поля основной информации
+        extra_fields_raw = request.form.getlist('extra_field')
+        extra_fields_line = ''
+        for item_str in extra_fields_raw:
+            if ':' in item_str:
+                label, value = item_str.split(':', 1)
+                extra_fields_line += f'\n{label.strip()}: {value.strip()}'
         trailer_type  = request.form.get('trailer_type', '').strip()
         moto_hours    = request.form.get('moto_hours', '').strip()
         mileage       = request.form.get('mileage', '').strip()
@@ -326,39 +331,60 @@ def submit():
             if check_doc_cmt:
                 doc_line += f' — {check_doc_cmt}'
 
-        # 1. Читаем фото
-        photo_bytes = {}
-        for zone in ZONE_ORDER:
-            if zone not in request.files:
-                continue
-            file = request.files[zone]
-            if not file:
-                continue
-            fb = file.read()
-            if fb and len(fb) >= 100:
-                # Сжимаем на сервере — защита от больших фото с iOS
-                if len(fb) > 1500 * 1024:
-                    fb = compress_image(fb)
-                photo_bytes[zone] = fb
+        # 1. Читаем фото — новый динамический формат (photo_0, photo_1, ...) с метками
+        photo_bytes = {}   # ключ: метка зоны (label), значение: байты
+        photo_count = int(request.form.get('photo_count', 0) or 0)
+        if photo_count > 0:
+            for i in range(photo_count):
+                key = f'photo_{i}'
+                if key not in request.files:
+                    continue
+                file = request.files[key]
+                if not file:
+                    continue
+                fb = file.read()
+                if fb and len(fb) >= 100:
+                    if len(fb) > 1500 * 1024:
+                        fb = compress_image(fb)
+                    label = request.form.get(f'photo_label_{i}', f'Фото {i+1}').strip()
+                    photo_bytes[label] = fb
+        else:
+            # Обратная совместимость со старым форматом (front/back/...)
+            for zone in ZONE_ORDER:
+                if zone not in request.files:
+                    continue
+                file = request.files[zone]
+                if not file:
+                    continue
+                fb = file.read()
+                if fb and len(fb) >= 100:
+                    if len(fb) > 1500 * 1024:
+                        fb = compress_image(fb)
+                    photo_bytes[ZONE_LABELS.get(zone, zone)] = fb
 
         if not photo_bytes:
             return jsonify({'ok': False, 'error': 'Нет фотографий'}), 400
 
         # 2. Загружаем фото в Supabase Storage
-        photo_urls = {}
-        for zone, fb in photo_bytes.items():
-            filename = f'{safe_gos}/{inspection_id}/{zone}.jpg'
+        photo_urls = {}   # метка → url
+        for label, fb in photo_bytes.items():
+            safe_label = safe_filename(label)
+            filename = f'{safe_gos}/{inspection_id}/{safe_label}.jpg'
             url = upload_photo_to_supabase(fb, filename)
             if url:
-                photo_urls[zone] = url
+                photo_urls[label] = url
 
-        # 3. Сохраняем в БД
+        # 3. Сохраняем в БД — первые 6 фото в существующие колонки
+        url_list = list(photo_urls.values())
         db_record = {
             'id': inspection_id, 'fio': fio, 'gosnomer': gosnomer,
             'type': type_, 'inspection_date': date, 'mileage': mileage,
-            'photo_front': photo_urls.get('front'), 'photo_back': photo_urls.get('back'),
-            'photo_left': photo_urls.get('left'), 'photo_right': photo_urls.get('right'),
-            'photo_salon': photo_urls.get('salon'), 'photo_sleep': photo_urls.get('sleep'),
+            'photo_front': url_list[0] if len(url_list) > 0 else None,
+            'photo_back':  url_list[1] if len(url_list) > 1 else None,
+            'photo_left':  url_list[2] if len(url_list) > 2 else None,
+            'photo_right': url_list[3] if len(url_list) > 3 else None,
+            'photo_salon': url_list[4] if len(url_list) > 4 else None,
+            'photo_sleep': url_list[5] if len(url_list) > 5 else None,
         }
         db_saved = save_inspection_to_db(db_record)
 
@@ -375,11 +401,9 @@ def submit():
 
                 media = []
                 files_dict = {}
-                for i, zone in enumerate(ZONE_ORDER):
-                    if zone not in pb:
-                        continue
-                    attach_name = f'photo_{zone}'
-                    files_dict[attach_name] = (f'{zone}.jpg', pb[zone], 'image/jpeg')
+                for i, (label, fb) in enumerate(pb.items()):
+                    attach_name = f'photo_{i}'
+                    files_dict[attach_name] = (f'{attach_name}.jpg', fb, 'image/jpeg')
                     media_item = {'type': 'photo', 'media': f'attach://{attach_name}'}
                     if i == 0:
                         media_item['caption'] = caption
@@ -442,7 +466,7 @@ def submit():
                 print(f'Background error: {e}')
                 import traceback; traceback.print_exc()
 
-        extra_lines = trailer_line + doc_line + (('\n\n📦 *ТМЦ:*' + tmc_line) if tmc_line else '')
+        extra_lines = extra_fields_line + trailer_line + doc_line + (('\n\n📦 *ТМЦ:*' + tmc_line) if tmc_line else '')
         threading.Thread(
             target=run_background,
             args=(photo_bytes, gosnomer, type_, date, mileage_str, fio, db_saved, extra_lines),

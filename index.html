@@ -381,6 +381,50 @@
       </div>
     </div>
 
+    <!-- Секция: Управление ФОТО -->
+    <div class="admin-section">
+      <div class="admin-section-title">📷 Фотографии осмотра</div>
+      <div class="admin-section-desc">Выберите раздел и настройте список фото для съёмки.</div>
+      <div style="display:flex;gap:8px;margin-top:12px;margin-bottom:12px">
+        <button id="photo-tab-truck" onclick="adminSetPhotoTab('truck')"
+          style="flex:1;padding:8px;border:2px solid #1a1a2e;border-radius:8px;background:#1a1a2e;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+          🚛 Автомобиль
+        </button>
+        <button id="photo-tab-trailer" onclick="adminSetPhotoTab('trailer')"
+          style="flex:1;padding:8px;border:2px solid #e8e8e8;border-radius:8px;background:white;color:#555;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+          🚚 Прицеп
+        </button>
+      </div>
+      <div id="admin-photo-list"></div>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+        <input type="text" id="admin-photo-new-name" placeholder="Название фото (напр. Крыша)"
+          style="flex:1;padding:9px 12px;border:2px solid #e8e8e8;border-radius:8px;font-size:14px;outline:none;font-family:inherit">
+        <button class="btn-admin-action" onclick="adminAddPhotoItem()" style="white-space:nowrap">➕ Добавить</button>
+      </div>
+    </div>
+
+    <!-- Секция: Доп. поля основной информации -->
+    <div class="admin-section">
+      <div class="admin-section-title">📝 Доп. поля информации</div>
+      <div class="admin-section-desc">Добавьте свои текстовые поля (напр. «Прицеп №», «Заметка»). ФИО, гос. номер, пробег и дата встроены и не меняются.</div>
+      <div style="display:flex;gap:8px;margin-top:12px;margin-bottom:12px">
+        <button id="extra-tab-truck" onclick="adminSetExtraTab('truck')"
+          style="flex:1;padding:8px;border:2px solid #1a1a2e;border-radius:8px;background:#1a1a2e;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+          🚛 Автомобиль
+        </button>
+        <button id="extra-tab-trailer" onclick="adminSetExtraTab('trailer')"
+          style="flex:1;padding:8px;border:2px solid #e8e8e8;border-radius:8px;background:white;color:#555;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+          🚚 Прицеп
+        </button>
+      </div>
+      <div id="admin-extra-list"></div>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+        <input type="text" id="admin-extra-new-name" placeholder="Название поля"
+          style="flex:1;padding:9px 12px;border:2px solid #e8e8e8;border-radius:8px;font-size:14px;outline:none;font-family:inherit">
+        <button class="btn-admin-action" onclick="adminAddExtraField()" style="white-space:nowrap">➕ Добавить</button>
+      </div>
+    </div>
+
     <!-- Секция: Смена пароля -->
     <div class="admin-section">
       <div class="admin-section-title">🔑 Пароль администратора</div>
@@ -428,70 +472,7 @@
   <div class="card">
     <div class="card-title">Данные водителя</div>
 
-    <!-- Блок проверки -->
-    <div class="check-section" id="check-docs-section">
-      <div class="check-header">
-        <span class="check-title">Выполните проверку</span>
-        <button class="info-btn" onclick="toggleInfoPopup(event)" aria-label="Подсказка">i
-          <div class="info-popup" id="info-popup">
-            <div class="info-row">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
-              <span>Всё хорошо</span>
-            </div>
-            <div class="info-row">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              <span>Некритичные замечания</span>
-            </div>
-            <div class="info-row">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              <span>Критичные замечания</span>
-            </div>
-          </div>
-        </button>
-      </div>
-
-      <div class="check-row">
-        <span class="check-label">Проверка документов</span>
-        <div class="check-icons">
-          <button class="check-icon" id="doc-ok"    onclick="selectCheck('doc','ok')"    title="Всё хорошо">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
-          </button>
-          <button class="check-icon" id="doc-warn"  onclick="selectCheck('doc','warn')"  title="Некритичные замечания">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          </button>
-          <button class="check-icon" id="doc-bad"   onclick="selectCheck('doc','bad')"   title="Критичные замечания">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          </button>
-        </div>
-      </div>
-      <textarea class="check-comment" id="doc-comment" placeholder="Введите замечания по документам..."></textarea>
-    </div>
-
-
-    <!-- Блок ТМЦ (строки рендерятся динамически) -->
-    <div class="check-section" id="check-tmc-section" style="margin-top:16px">
-      <div class="check-header">
-        <span class="check-title">Проверка ТМЦ</span>
-        <button class="info-btn" onclick="toggleTmcInfoPopup(event)" aria-label="Подсказка">i
-          <div class="info-popup" id="info-popup-tmc">
-            <div class="info-row">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
-              <span>Есть / в порядке</span>
-            </div>
-            <div class="info-row">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              <span>Замечание</span>
-            </div>
-            <div class="info-row">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              <span>Отсутствует / повреждён</span>
-            </div>
-          </div>
-        </button>
-      </div>
-    </div>
-
-    <label>ФИО водителя</label>
+<label>ФИО водителя</label>
     <div class="autocomplete-wrap">
       <input type="text" id="fio" placeholder="Петров Андрей Анатольевич" autocomplete="off"
         oninput="acSearch('fio')" onfocus="acSearch('fio')" onblur="acHide('fio')">
@@ -545,6 +526,9 @@
       </div>
     </div>
 
+    <!-- Динамические доп. поля основной информации -->
+    <div id="extra-fields-container"></div>
+
     <label>Дата осмотра</label>
     <input type="date" id="date">
 
@@ -553,6 +537,74 @@
       <div class="type-btn" id="btn-priem" onclick="selectType('приёмка')">📥 Приёмка</div>
       <div class="type-btn" id="btn-sdacha" onclick="selectType('сдача')">📤 Сдача</div>
     </div>
+
+
+<!-- Блок проверки -->
+    <div class="check-section" id="check-docs-section">
+      <div class="check-header">
+        <span class="check-title">Выполните проверку</span>
+        <button class="info-btn" onclick="toggleInfoPopup(event)" aria-label="Подсказка">i
+          <div class="info-popup" id="info-popup">
+            <div class="info-row">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
+              <span>Всё хорошо</span>
+            </div>
+            <div class="info-row">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>Некритичные замечания</span>
+            </div>
+            <div class="info-row">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>Критичные замечания</span>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      <div class="check-row">
+        <span class="check-label">Проверка документов</span>
+        <div class="check-icons">
+          <button class="check-icon" id="doc-ok"    onclick="selectCheck('doc','ok')"    title="Всё хорошо">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
+          </button>
+          <button class="check-icon" id="doc-warn"  onclick="selectCheck('doc','warn')"  title="Некритичные замечания">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </button>
+          <button class="check-icon" id="doc-bad"   onclick="selectCheck('doc','bad')"   title="Критичные замечания">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </button>
+        </div>
+      </div>
+      <textarea class="check-comment" id="doc-comment" placeholder="Введите замечания по документам..."></textarea>
+    </div>
+
+
+    
+
+<!-- Блок ТМЦ (строки рендерятся динамически) -->
+    <div class="check-section" id="check-tmc-section" style="margin-top:16px">
+      <div class="check-header">
+        <span class="check-title">Проверка ТМЦ</span>
+        <button class="info-btn" onclick="toggleTmcInfoPopup(event)" aria-label="Подсказка">i
+          <div class="info-popup" id="info-popup-tmc">
+            <div class="info-row">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
+              <span>Есть / в порядке</span>
+            </div>
+            <div class="info-row">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>Замечание</span>
+            </div>
+            <div class="info-row">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>Отсутствует / повреждён</span>
+            </div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    
   </div>
 
   <button class="btn-main" onclick="goToPhotos()">Продолжить →</button>
@@ -742,10 +794,27 @@ function goToPhotos() {
     bannerSub += ` • ${Number(mileage).toLocaleString('ru')} км`;
   }
   document.getElementById('banner-sub').textContent = bannerSub;
+  renderPhotoGrid();
+  updateProgress();
   showScreen('screen2');
 }
 
-function openCamera(zone) { document.getElementById('cam-' + zone).click(); }
+function openCamera(zone) {
+  // Используем статичный input если есть, иначе создаём динамический
+  let inp = document.getElementById('cam-' + zone);
+  if (!inp) {
+    inp = document.createElement('input');
+    inp.type = 'file';
+    inp.className = 'cam';
+    inp.id = 'cam-' + zone;
+    inp.accept = 'image/*,image/heic,image/heif';
+    if (!isIOS) inp.setAttribute('capture', 'environment');
+    inp.style.display = 'none';
+    inp.onchange = function() { photoTaken(zone, this); };
+    document.getElementById('screen2').appendChild(inp);
+  }
+  inp.click();
+}
 
 function photoTaken(zone, input) {
   if (!input.files || !input.files[0]) return;
@@ -762,12 +831,25 @@ function photoTaken(zone, input) {
 }
 
 function updateProgress() {
-  const zones = vehicleType === 'trailer' ? TRAILER_ZONES : TRUCK_ZONES;
+  const zones = getActivePhotoZones();
   const total = zones.length;
-  const count = zones.filter(z => photos[z]).length;
+  const count = zones.filter(z => photos[z.key]).length;
   document.getElementById('progress-text').textContent = `${count} из ${total}`;
-  document.getElementById('progress-fill').style.width = `${(count/total)*100}%`;
+  document.getElementById('progress-fill').style.width = total ? `${(count/total)*100}%` : '0%';
   document.getElementById('btn-send').disabled = (count < total);
+}
+
+function renderPhotoGrid() {
+  const grid = document.querySelector('#screen2 .photo-grid');
+  if (!grid) return;
+  const zones = getActivePhotoZones();
+  grid.innerHTML = zones.map(z => `
+    <div class="photo-item" id="item-${z.key}" onclick="openCamera('${z.key}')">
+      <div class="photo-icon" id="icon-${z.key}">📷</div>
+      <div style="flex:1"><div class="photo-label">${z.label}</div><div class="photo-status" id="status-${z.key}">Нажмите чтобы сфотографировать</div></div>
+      <div class="check-mark" id="check-${z.key}">—</div>
+    </div>
+  `).join('');
 }
 
 async function compressPhoto(file, maxSizeKB = 1500) {
@@ -822,6 +904,14 @@ async function sendReport() {
     if (motoHours) formData.append('moto_hours', motoHours);
   }
 
+  // Доп. поля основной информации
+  getActiveExtraFields().forEach(f => {
+    const el = document.getElementById('extra-' + f.key);
+    if (el && el.value.trim()) {
+      formData.append('extra_field', f.label + ':' + el.value.trim());
+    }
+  });
+
   // Данные ТМЦ (из динамического конфига)
   tmcConfig.filter(i => i.visible).forEach(item => {
     const state = checkState['tmc_' + item.key];
@@ -839,13 +929,19 @@ async function sendReport() {
     if (comment) formData.append('check_doc_comment', comment);
   }
 
-  const zones = { front:'Спереди', back:'Сзади', left:'Левый бок', right:'Правый бок', salon:'Салон', sleep:'Спальник' };
-  for (const [key, label] of Object.entries(zones)) {
-    if (photos[key]) {
-      const compressed = await compressPhoto(photos[key]);
-      formData.append(key, compressed, `${label}.jpg`);
+  // Фото из динамического конфига
+  const activeZones = getActivePhotoZones();
+  let photoIndex = 0;
+  for (const zone of activeZones) {
+    if (photos[zone.key]) {
+      const compressed = await compressPhoto(photos[zone.key]);
+      // Отправляем с понятным именем и порядковым ключом для сервера
+      formData.append('photo_' + photoIndex, compressed, `${zone.label}.jpg`);
+      formData.append('photo_label_' + photoIndex, zone.label);
+      photoIndex++;
     }
   }
+  formData.append('photo_count', photoIndex);
 
   try {
     const resp = await fetch(SERVER_URL, { method:'POST', body:formData });
@@ -897,6 +993,9 @@ function resetApp() {
   const docComment = document.getElementById('doc-comment');
   if(docComment) { docComment.value = ''; docComment.classList.remove('show'); }
 
+  // Сброс доп. полей
+  renderExtraFields();
+
   // Сброс ТМЦ
   tmcConfig.forEach(item => {
     ['ok','warn','bad'].forEach(s => {
@@ -913,38 +1012,42 @@ function resetApp() {
   });
   const motoSection = document.getElementById('moto-hours-section');
   if(motoSection) motoSection.style.display = 'none';
-  const icons = {front:'🚗',back:'🚗',left:'◀️',right:'▶️',salon:'🪑',sleep:'🛏️'};
+  // Сброс фото — безопасно, элементы могли быть пересозданы динамически
+  photos && Object.keys(photos).forEach(k => delete photos[k]);
+  const icons = {front:'📷',back:'📷',left:'📷',right:'📷',salon:'📷',sleep:'📷',tfront:'📷',tback:'📷',tleft:'📷',tright:'📷',tinside:'📷'};
   Object.keys(icons).forEach(z => {
-    document.getElementById('item-'+z).classList.remove('done');
-    document.getElementById('status-'+z).textContent = 'Нажмите чтобы сфотографировать';
-    document.getElementById('check-'+z).textContent = '—';
-    document.getElementById('icon-'+z).innerHTML = icons[z];
-    document.getElementById('cam-'+z).value = '';
+    const item = $safe('item-'+z); if(item) item.classList.remove('done');
+    const status = $safe('status-'+z); if(status) status.textContent = 'Нажмите чтобы сфотографировать';
+    const check = $safe('check-'+z); if(check) check.textContent = '—';
+    const icon = $safe('icon-'+z); if(icon) icon.innerHTML = icons[z];
+    const cam = $safe('cam-'+z); if(cam) cam.value = '';
   });
-  document.getElementById('date').value = `${yyyy}-${mm}-${dd}`;
+  setValue('date', `${yyyy}-${mm}-${dd}`);
   // Восстанавливаем UI для тягача явно — независимо от предыдущего состояния
-  document.getElementById('label-gosnomer').textContent = 'Гос. номер авто';
-  document.getElementById('label-mileage').style.display = '';
-  document.getElementById('mileage').style.display = '';
-  document.getElementById('mileage').setAttribute('required', '');
-  document.getElementById('mileage').placeholder = '214400';
-  document.getElementById('trailer-type-section').style.display = 'none';
-  document.getElementById('check-docs-section').style.display = '';
-  document.getElementById('item-sleep').style.display = 'none';
-  document.getElementById('label-salon').textContent = 'Салон';
-  document.getElementById('icon-salon').innerHTML = '🪑';
-  document.getElementById('cam-sleep').disabled = true;
+  setText('label-gosnomer', 'Гос. номер авто');
+  setStyle('label-mileage', 'display', '');
+  setStyle('mileage', 'display', '');
+  setAttr('mileage', 'required', '');
+  setAttr('mileage', 'placeholder', '214400');
+  setStyle('trailer-type-section', 'display', 'none');
+  setStyle('check-docs-section', 'display', '');
+  setStyle('item-sleep', 'display', 'none');
+  setText('label-salon', 'Салон');
+  setHTML('icon-salon', '🪑');
+  setDisabled('cam-sleep', true);
   ['tt-tent','tt-iso','tt-ref'].forEach(id => {
-    const el = document.getElementById(id); if(el) el.classList.remove('active-ok');
+    const el = $safe(id); if(el) el.classList.remove('active-ok');
   });
+  renderPhotoGrid();
   updateProgress();
   showScreen('screen0');
 }
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  window.scrollTo(0,0);
+  const target = document.getElementById(id);
+  if (target) target.classList.add('active');
+  try { window.scrollTo(0,0); } catch(e) {}
   // Кнопка админа — только на главном экране
   const btnAdmin = document.getElementById('btn-admin');
   if (btnAdmin) btnAdmin.style.display = (id === 'screen0') ? 'flex' : 'none';
@@ -976,48 +1079,110 @@ function selectTrailerType(type) {
 
 // ===== Выбор типа ТС =====
 let vehicleType = 'truck'; // truck | trailer
-const TRUCK_ZONES   = ['front','back','left','right','salon'];
-const TRAILER_ZONES = ['front','back','left','right','salon'];
+// Фотозоны по умолчанию (конфигурируются в админке)
+const PHOTO_DEFAULT = [
+  { key: 'front', label: 'Спереди',   section: 'truck',   visible: true },
+  { key: 'back',  label: 'Сзади',     section: 'truck',   visible: true },
+  { key: 'left',  label: 'Левый бок', section: 'truck',   visible: true },
+  { key: 'right', label: 'Правый бок',section: 'truck',   visible: true },
+  { key: 'salon', label: 'Салон',     section: 'truck',   visible: true },
+  { key: 'tfront', label: 'Спереди',      section: 'trailer', visible: true },
+  { key: 'tback',  label: 'Сзади',        section: 'trailer', visible: true },
+  { key: 'tleft',  label: 'Левый бок',    section: 'trailer', visible: true },
+  { key: 'tright', label: 'Правый бок',   section: 'trailer', visible: true },
+  { key: 'tinside',label: 'Внутри прицепа', section: 'trailer', visible: true },
+];
+
+let photoConfig = [];
+
+function loadPhotoConfig() {
+  try {
+    const saved = localStorage.getItem('photoConfig');
+    photoConfig = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(PHOTO_DEFAULT));
+  } catch(e) { photoConfig = JSON.parse(JSON.stringify(PHOTO_DEFAULT)); }
+}
+function savePhotoConfig() { localStorage.setItem('photoConfig', JSON.stringify(photoConfig)); }
+
+function getActivePhotoZones() {
+  return photoConfig.filter(p => p.visible && (p.section === vehicleType || p.section === 'both'));
+}
+
+// ===== Доп. поля основной информации =====
+const EXTRA_FIELDS_DEFAULT = []; // по умолчанию пусто — только базовые ФИО, гос, пробег, дата
+
+let extraFieldsConfig = [];
+
+function loadExtraFieldsConfig() {
+  try {
+    const saved = localStorage.getItem('extraFieldsConfig');
+    extraFieldsConfig = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(EXTRA_FIELDS_DEFAULT));
+  } catch(e) { extraFieldsConfig = []; }
+}
+function saveExtraFieldsConfig() { localStorage.setItem('extraFieldsConfig', JSON.stringify(extraFieldsConfig)); }
+
+function getActiveExtraFields() {
+  return extraFieldsConfig.filter(f => f.visible && (f.section === vehicleType || f.section === 'both'));
+}
+
+function renderExtraFields() {
+  const container = document.getElementById('extra-fields-container');
+  if (!container) return;
+  const fields = getActiveExtraFields();
+  container.innerHTML = fields.map(f => `
+    <label>${f.label}</label>
+    <input type="text" id="extra-${f.key}" placeholder="${f.label}" autocomplete="off">
+  `).join('');
+}
+
+// Безопасный доступ к элементу — никогда не падает на null
+function $safe(id) { return document.getElementById(id); }
+function setStyle(id, prop, val) { const el = $safe(id); if (el) el.style[prop] = val; }
+function setText(id, val) { const el = $safe(id); if (el) el.textContent = val; }
+function setHTML(id, val) { const el = $safe(id); if (el) el.innerHTML = val; }
+function setAttr(id, name, val) { const el = $safe(id); if (el) el.setAttribute(name, val); }
+function removeAttr(id, name) { const el = $safe(id); if (el) el.removeAttribute(name); }
+function setDisabled(id, val) { const el = $safe(id); if (el) el.disabled = val; }
+function setValue(id, val) { const el = $safe(id); if (el) el.value = val; }
 
 function selectVehicle(type) {
   vehicleType = type;
 
   if (type === 'trailer') {
     // Полуприцеп: скрыть спальник, показать тип прицепа
-    document.getElementById('label-gosnomer').textContent = 'Гос. номер прицепа';
-    document.getElementById('label-mileage').style.display = 'none';
-    document.getElementById('mileage').style.display = 'none';
-    document.getElementById('mileage').removeAttribute('required');
-    document.getElementById('trailer-type-section').style.display = 'block';
-    document.getElementById('check-docs-section').style.display = '';
-    document.getElementById('check-tmc-section').style.display = 'none';
-    document.getElementById('item-sleep').style.display = 'none';
-    document.getElementById('label-salon').textContent = 'Внутри прицепа';
-    document.getElementById('icon-salon').innerHTML = '📦';
-    document.getElementById('cam-sleep').disabled = true;
+    setText('label-gosnomer', 'Гос. номер прицепа');
+    setStyle('label-mileage', 'display', 'none');
+    setStyle('mileage', 'display', 'none');
+    removeAttr('mileage', 'required');
+    setStyle('trailer-type-section', 'display', 'block');
+    setStyle('check-docs-section', 'display', '');
+    setStyle('check-tmc-section', 'display', 'none');
+    setStyle('item-sleep', 'display', 'none');
+    setText('label-salon', 'Внутри прицепа');
+    setHTML('icon-salon', '📦');
+    setDisabled('cam-sleep', true);
     trailerType = '';
-    ['tt-tent','tt-iso','tt-ref'].forEach(id => document.getElementById(id).classList.remove('selected'));
-    document.getElementById('moto-hours-section').style.display = 'none';
-    document.getElementById('moto-hours').value = '';
-    ['tt-tent','tt-iso','tt-ref'].forEach(id => document.getElementById(id).classList.remove('selected'));
+    ['tt-tent','tt-iso','tt-ref'].forEach(id => { const el = $safe(id); if (el) el.classList.remove('selected'); });
+    setStyle('moto-hours-section', 'display', 'none');
+    setValue('moto-hours', '');
   } else {
     // Тягач: стандартный режим (спальник убран)
-    document.getElementById('label-gosnomer').textContent = 'Гос. номер авто';
-    document.getElementById('label-mileage').style.display = '';
-    document.getElementById('mileage').style.display = '';
-    document.getElementById('mileage').setAttribute('required', '');
-    document.getElementById('mileage').placeholder = '214400';
-    document.getElementById('trailer-type-section').style.display = 'none';
-    document.getElementById('check-docs-section').style.display = '';
-    document.getElementById('check-tmc-section').style.display = '';
-    document.getElementById('item-sleep').style.display = 'none';
-    document.getElementById('label-salon').textContent = 'Салон';
-    document.getElementById('icon-salon').innerHTML = '🪑';
-    document.getElementById('cam-sleep').disabled = true;
+    setText('label-gosnomer', 'Гос. номер авто');
+    setStyle('label-mileage', 'display', '');
+    setStyle('mileage', 'display', '');
+    setAttr('mileage', 'required', '');
+    setAttr('mileage', 'placeholder', '214400');
+    setStyle('trailer-type-section', 'display', 'none');
+    setStyle('check-docs-section', 'display', '');
+    setStyle('check-tmc-section', 'display', '');
+    setStyle('item-sleep', 'display', 'none');
+    setText('label-salon', 'Салон');
+    setHTML('icon-salon', '🪑');
+    setDisabled('cam-sleep', true);
   }
 
   updateProgress();
   renderTmcSection();
+  renderExtraFields();
   showScreen('screen1');
 }
 
@@ -1113,7 +1278,7 @@ function renderTmcSection() {
     wrap.className = 'tmc-row-wrap';
     wrap.innerHTML = `
       <div class="check-row" style="margin-top:10px">
-        <span class="check-label">${item.icon} ${item.label}</span>
+        <span class="check-label">${item.label}</span>
         <div class="check-icons">
           <button class="check-icon" id="tmc-ok-${item.key}" onclick="selectCheck('tmc_${item.key}','ok')" title="Есть">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="7 13 10 16 17 9"/></svg>
@@ -1218,6 +1383,152 @@ function renderAdminTmcList() {
   `).join('');
 }
 
+// ===== Управление ФОТО в админке =====
+let adminPhotoTab = 'truck';
+
+function adminSetPhotoTab(tab) {
+  adminPhotoTab = tab;
+  const t = document.getElementById('photo-tab-truck');
+  const r = document.getElementById('photo-tab-trailer');
+  if (t && r) {
+    if (tab === 'truck') {
+      t.style.borderColor='#1a1a2e'; t.style.background='#1a1a2e'; t.style.color='white';
+      r.style.borderColor='#e8e8e8'; r.style.background='white'; r.style.color='#555';
+    } else {
+      r.style.borderColor='#1a1a2e'; r.style.background='#1a1a2e'; r.style.color='white';
+      t.style.borderColor='#e8e8e8'; t.style.background='white'; t.style.color='#555';
+    }
+  }
+  renderAdminPhotoList();
+}
+
+function adminAddPhotoItem() {
+  const nameEl = document.getElementById('admin-photo-new-name');
+  const name = nameEl.value.trim();
+  if (!name) { nameEl.focus(); return; }
+  const key = 'photo_custom_' + Date.now();
+  photoConfig.push({ key, label: name, section: adminPhotoTab, visible: true });
+  savePhotoConfig();
+  renderAdminPhotoList();
+  nameEl.value = '';
+  nameEl.focus();
+}
+
+function adminTogglePhotoItem(key) {
+  const item = photoConfig.find(i => i.key === key);
+  if (item) { item.visible = !item.visible; savePhotoConfig(); renderAdminPhotoList(); }
+}
+
+function adminDeletePhotoItem(key) {
+  photoConfig = photoConfig.filter(i => i.key !== key);
+  savePhotoConfig();
+  renderAdminPhotoList();
+}
+
+function adminRenamePhotoItem(key, newLabel) {
+  const item = photoConfig.find(i => i.key === key);
+  if (item && newLabel.trim()) { item.label = newLabel.trim(); savePhotoConfig(); }
+}
+
+function renderAdminPhotoList() {
+  const listEl = document.getElementById('admin-photo-list');
+  if (!listEl) return;
+  const items = photoConfig.filter(i => i.section === adminPhotoTab || i.section === 'both');
+  if (!items.length) {
+    listEl.innerHTML = '<div style="font-size:13px;color:#aaa;font-style:italic;padding:8px 0">Нет пунктов для этого раздела</div>';
+    return;
+  }
+  listEl.innerHTML = items.map(item => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0">
+      <span style="font-size:16px;flex-shrink:0">📷</span>
+      <input type="text" value="${item.label.replace(/"/g,'&quot;')}"
+        style="flex:1;padding:6px 10px;border:1.5px solid #e8e8e8;border-radius:6px;font-size:13px;outline:none;font-family:inherit"
+        onchange="adminRenamePhotoItem('${item.key}', this.value)">
+      <button onclick="adminTogglePhotoItem('${item.key}')"
+        style="padding:5px 10px;border:1.5px solid ${item.visible?'#16a34a':'#e8e8e8'};border-radius:6px;background:${item.visible?'#dcfce7':'#f8fafc'};color:${item.visible?'#16a34a':'#94a3b8'};font-size:13px;cursor:pointer;font-family:inherit;flex-shrink:0">
+        ${item.visible ? '👁' : '🚫'}
+      </button>
+      <button onclick="adminDeletePhotoItem('${item.key}')"
+        style="padding:5px 10px;border:1.5px solid #fca5a5;border-radius:6px;background:#fee2e2;color:#dc2626;font-size:13px;cursor:pointer;font-family:inherit;flex-shrink:0">
+        🗑
+      </button>
+    </div>
+  `).join('');
+}
+
+// ===== Управление ДОП. ПОЛЯМИ в админке =====
+let adminExtraTab = 'truck';
+
+function adminSetExtraTab(tab) {
+  adminExtraTab = tab;
+  const t = document.getElementById('extra-tab-truck');
+  const r = document.getElementById('extra-tab-trailer');
+  if (t && r) {
+    if (tab === 'truck') {
+      t.style.borderColor='#1a1a2e'; t.style.background='#1a1a2e'; t.style.color='white';
+      r.style.borderColor='#e8e8e8'; r.style.background='white'; r.style.color='#555';
+    } else {
+      r.style.borderColor='#1a1a2e'; r.style.background='#1a1a2e'; r.style.color='white';
+      t.style.borderColor='#e8e8e8'; t.style.background='white'; t.style.color='#555';
+    }
+  }
+  renderAdminExtraList();
+}
+
+function adminAddExtraField() {
+  const nameEl = document.getElementById('admin-extra-new-name');
+  const name = nameEl.value.trim();
+  if (!name) { nameEl.focus(); return; }
+  const key = 'ef_' + Date.now();
+  extraFieldsConfig.push({ key, label: name, section: adminExtraTab, visible: true });
+  saveExtraFieldsConfig();
+  renderAdminExtraList();
+  nameEl.value = '';
+  nameEl.focus();
+}
+
+function adminToggleExtraField(key) {
+  const item = extraFieldsConfig.find(i => i.key === key);
+  if (item) { item.visible = !item.visible; saveExtraFieldsConfig(); renderAdminExtraList(); }
+}
+
+function adminDeleteExtraField(key) {
+  extraFieldsConfig = extraFieldsConfig.filter(i => i.key !== key);
+  saveExtraFieldsConfig();
+  renderAdminExtraList();
+}
+
+function adminRenameExtraField(key, newLabel) {
+  const item = extraFieldsConfig.find(i => i.key === key);
+  if (item && newLabel.trim()) { item.label = newLabel.trim(); saveExtraFieldsConfig(); }
+}
+
+function renderAdminExtraList() {
+  const listEl = document.getElementById('admin-extra-list');
+  if (!listEl) return;
+  const items = extraFieldsConfig.filter(i => i.section === adminExtraTab || i.section === 'both');
+  if (!items.length) {
+    listEl.innerHTML = '<div style="font-size:13px;color:#aaa;font-style:italic;padding:8px 0">Нет доп. полей для этого раздела</div>';
+    return;
+  }
+  listEl.innerHTML = items.map(item => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0">
+      <span style="font-size:16px;flex-shrink:0">📝</span>
+      <input type="text" value="${item.label.replace(/"/g,'&quot;')}"
+        style="flex:1;padding:6px 10px;border:1.5px solid #e8e8e8;border-radius:6px;font-size:13px;outline:none;font-family:inherit"
+        onchange="adminRenameExtraField('${item.key}', this.value)">
+      <button onclick="adminToggleExtraField('${item.key}')"
+        style="padding:5px 10px;border:1.5px solid ${item.visible?'#16a34a':'#e8e8e8'};border-radius:6px;background:${item.visible?'#dcfce7':'#f8fafc'};color:${item.visible?'#16a34a':'#94a3b8'};font-size:13px;cursor:pointer;font-family:inherit;flex-shrink:0">
+        ${item.visible ? '👁' : '🚫'}
+      </button>
+      <button onclick="adminDeleteExtraField('${item.key}')"
+        style="padding:5px 10px;border:1.5px solid #fca5a5;border-radius:6px;background:#fee2e2;color:#dc2626;font-size:13px;cursor:pointer;font-family:inherit;flex-shrink:0">
+        🗑
+      </button>
+    </div>
+  `).join('');
+}
+
 // ===== Администратор =====
 const ADMIN_PASSWORD_KEY = 'adminPassword';
 const ADMIN_SESSION_KEY  = 'adminSession';
@@ -1260,7 +1571,9 @@ function checkAdminPassword() {
 function showAdminPanel() {
   document.getElementById('admin-panel-modal').style.display = 'flex';
   renderAdminDbPreview();
-  adminSetTmcTab(adminTmcTab); // восстанавливаем активный таб
+  adminSetTmcTab(adminTmcTab);
+  adminSetPhotoTab(adminPhotoTab);
+  adminSetExtraTab(adminExtraTab);
 }
 
 function closeAdminPanel() {
@@ -1376,9 +1689,11 @@ function renderAdminDbPreview() {
     if (saved) driverDatabase = JSON.parse(saved);
   } catch(e) {}
   loadTmcConfig();
-  // renderTmcSection вызовем после загрузки DOM
+  loadPhotoConfig();
+  loadExtraFieldsConfig();
   document.addEventListener('DOMContentLoaded', () => {
     renderTmcSection();
+    renderExtraFields();
   });
 })();
 
