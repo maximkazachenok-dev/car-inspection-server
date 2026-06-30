@@ -1698,8 +1698,8 @@ function renderAdminDbPreview() {
 })();
 
 // ===== Камера: capture только для Android =====
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 (function() {
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   if (!isIOS) {
     document.querySelectorAll('input.cam').forEach(el => {
       el.setAttribute('capture', 'environment');
