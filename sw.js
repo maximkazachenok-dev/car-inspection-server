@@ -1,5 +1,12 @@
-const CACHE_NAME = 'car-inspection-v2';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
+const CACHE_NAME = 'vehicle-inspection-v1';
+const BASE = '/car-inspection-server';
+const ASSETS = [
+  BASE + '/',
+  BASE + '/index.html',
+  BASE + '/manifest.json',
+  BASE + '/icon-192.png',
+  BASE + '/icon-512.png',
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));
