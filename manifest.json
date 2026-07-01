@@ -1,11 +1,11 @@
 {
-  "name": "Осмотр автомобиля",
-  "short_name": "Осмотр ТС",
+  "name": "Vehicle inspection",
+  "short_name": "Vehicle inspection",
   "description": "Приём и передача транспортного средства",
-  "start_url": "/car-inspection-server/",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a1a2e",
-  "theme_color": "#1a1a2e",
+  "background_color": "#EFF4FB",
+  "theme_color": "#1a4a8a",
   "orientation": "portrait",
   "icons": [
     {
