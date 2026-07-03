@@ -393,7 +393,7 @@ def submit():
             print(f'[BG] Starting background for {gos} {dt}')
             try:
                 caption = (
-                    f"🚛 *ОСМОТР {vehicle_type.upper()}*\n\n"
+                    f"🚛 *ОСМОТР ТРАНСПОРТНОГО СРЕДСТВА*\n\n"
                     f"👤 {fio_val}\n🔢 {gos}\n📋 {tp.upper()}\n📅 {dt}\n🛣 Пробег: {ml_str}{extra_lines}"
                 )
                 if db_ok:
