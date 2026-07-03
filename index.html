@@ -36,7 +36,9 @@
   .type-btn { padding: 16px 10px; border: 2px solid #e8e8e8; border-radius: 10px; background: #fafafa; font-size: 15px; font-weight: 600; color: #888; cursor: pointer; transition: all 0.2s; text-align: center; }
   .type-btn.selected { border-color: #1a1a2e; background: #1a1a2e; color: white; }
 
-  .btn-main { width: 100%; padding: 18px; background: #1a1a2e; color: white; border: none; border-radius: 12px; font-size: 17px; font-weight: 700; cursor: pointer; margin-top: 8px; transition: opacity 0.2s, transform 0.1s; letter-spacing: 0.3px; }
+  .btn-main { width: 100%; padding: 12px 20px; background: #1a1a2e; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; transition: opacity 0.2s, transform 0.1s; letter-spacing: 0.2px; }
+  .btn-row { display: flex; gap: 10px; margin-top: 12px; }
+  .btn-row .btn-main, .btn-row .btn-secondary { margin-top: 0; width: auto; flex: 1; }
   .btn-main:active { transform: scale(0.98); opacity: 0.9; }
   .btn-main:disabled { background: #ccc; cursor: not-allowed; transform: none; }
   .btn-success { background: #16a34a; }
@@ -632,8 +634,10 @@
     
   </div>
 
-  <button class="btn-main" onclick="goToPhotos()">Продолжить →</button>
-  <button class="btn-main btn-secondary" onclick="showScreen('screen0')">← Назад</button>
+  <div class="btn-row">
+      <button class="btn-main btn-secondary" onclick="showScreen('screen0')">← Назад</button>
+      <button class="btn-main" onclick="goToPhotos()">Продолжить →</button>
+    </div>
   <div style="height:20px"></div>
 </div>
 
@@ -681,8 +685,10 @@
     </div>
   </div>
   <div style="height:16px"></div>
-  <button class="btn-main btn-success" id="btn-send" onclick="sendReport()" disabled>✅ Завершить осмотр</button>
-  <button class="btn-main btn-secondary" onclick="showScreen('screen1')">← Назад</button>
+  <div class="btn-row">
+    <button class="btn-main btn-secondary" onclick="showScreen('screen1')">← Назад</button>
+    <button class="btn-main btn-success" id="btn-send" onclick="sendReport()" disabled>✅ Завершить</button>
+  </div>
   <div style="height:24px"></div>
 
   <input type="file" class="cam" id="cam-front" accept="image/*,image/heic,image/heif" onchange="photoTaken('front',this)">
