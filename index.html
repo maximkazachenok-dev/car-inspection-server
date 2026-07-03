@@ -1860,57 +1860,64 @@ document.getElementById('install-btn').addEventListener('click', () => {
 });
 // ===== Голосовой ввод замечаний =====
 let voiceRecognition = null;
-let voiceActive = false;
+let voiceActive     = false;
+let voiceBaseText   = ''; // текст в поле ДО начала текущей сессии записи
 
 function initVoice() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) return null;
-  const r = new SpeechRecognition();
-  r.lang = 'ru-RU';
-  r.continuous = true;       // не останавливается между паузами
-  r.interimResults = true;   // показывает текст в процессе речи
-  r.maxAlternatives = 1;
 
-  let finalText = '';
+  const r = new SpeechRecognition();
+  r.lang           = 'ru-RU';
+  r.continuous     = false;  // одна фраза за раз — нет дублирования
+  r.interimResults = true;   // показываем текст в процессе речи
+  r.maxAlternatives = 1;
 
   r.onstart = () => {
     voiceActive = true;
-    finalText = document.getElementById('voice-text').value.trim();
+    // Фиксируем текст который уже был в поле — это база
+    voiceBaseText = (document.getElementById('voice-text').value || '').trim();
     document.getElementById('btn-mic').classList.add('recording');
-    document.getElementById('voice-hint').textContent = '🔴 Запись... говорите';
+    document.getElementById('voice-hint').textContent = '🔴 Идёт запись... говорите';
     document.getElementById('voice-hint').classList.add('active');
   };
 
   r.onresult = (e) => {
-    let interim = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
+    // Собираем только результаты текущего события (e.results — вся сессия)
+    // Итерируем от 0, т.к. continuous=false: за сессию одна фраза
+    let finalPart  = '';
+    let interimPart = '';
+    for (let i = 0; i < e.results.length; i++) {
       if (e.results[i].isFinal) {
-        finalText += (finalText ? ' ' : '') + e.results[i][0].transcript;
+        finalPart += e.results[i][0].transcript;
       } else {
-        interim += e.results[i][0].transcript;
+        interimPart += e.results[i][0].transcript;
       }
     }
-    document.getElementById('voice-text').value = finalText + (interim ? ' ' + interim : '');
+    // Собираем: база + новое финальное + промежуточное (для отображения)
+    const sep = voiceBaseText && (finalPart || interimPart) ? ' ' : '';
+    document.getElementById('voice-text').value =
+      voiceBaseText + sep + finalPart + (interimPart ? (finalPart ? ' ' : '') + interimPart : '');
   };
 
   r.onend = () => {
     voiceActive = false;
+    // Убираем промежуточный текст — оставляем только финальный
+    const el  = document.getElementById('voice-text');
+    el.value  = el.value.trim();
     document.getElementById('btn-mic').classList.remove('recording');
-    document.getElementById('voice-hint').textContent = 'Нажмите микрофон и говорите — текст появится автоматически';
+    document.getElementById('voice-hint').textContent =
+      'Нажмите ещё раз чтобы продолжить запись';
     document.getElementById('voice-hint').classList.remove('active');
-    // Сохраняем финальный текст
-    const el = document.getElementById('voice-text');
-    const val = el.value.trim();
-    if (val) el.value = val;
   };
 
   r.onerror = (e) => {
     voiceActive = false;
     document.getElementById('btn-mic').classList.remove('recording');
-    let msg = 'Нажмите микрофон и говорите — текст появится автоматически';
+    let msg = 'Нажмите микрофон и говорите';
     if (e.error === 'not-allowed') msg = '⚠️ Нет доступа к микрофону — разрешите в настройках браузера';
     if (e.error === 'network')     msg = '⚠️ Нет интернета — голосовой ввод недоступен';
-    if (e.error === 'no-speech')   msg = 'Речь не распознана. Попробуйте ещё раз';
+    if (e.error === 'no-speech')   msg = 'Речь не распознана — попробуйте ещё раз';
     document.getElementById('voice-hint').textContent = msg;
     document.getElementById('voice-hint').classList.remove('active');
   };
@@ -1923,18 +1930,21 @@ function toggleVoice() {
     voiceRecognition = initVoice();
   }
   if (!voiceRecognition) {
-    alert('Голосовой ввод не поддерживается в этом браузере. Используйте Chrome на Android.');
+    alert('Голосовой ввод не поддерживается. Используйте Chrome на Android.');
     return;
   }
   if (voiceActive) {
     voiceRecognition.stop();
   } else {
+    // Каждый раз создаём новый экземпляр — это надёжнее на Android Chrome
+    voiceRecognition = initVoice();
     voiceRecognition.start();
   }
 }
 
 function clearVoiceText() {
   document.getElementById('voice-text').value = '';
+  voiceBaseText = '';
   if (voiceActive && voiceRecognition) voiceRecognition.stop();
 }
 
@@ -1942,11 +1952,6 @@ function getVoiceText() {
   const el = document.getElementById('voice-text');
   return el ? el.value.trim() : '';
 }
-
-// Сбрасываем голосовое поле при новом осмотре
-const _origResetApp = resetApp;
-// Встроим сброс голоса в resetApp через патч
-
 </script>
 </body>
 </html>
