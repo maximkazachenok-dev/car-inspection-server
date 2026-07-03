@@ -138,6 +138,87 @@
     font-family: inherit; transition: all 0.15s;
   }
   .btn-admin-action:active { opacity: 0.8; }
+  /* ===== Блок голосовых замечаний ===== */
+  .voice-block {
+    background: white;
+    border: 1.5px solid #e8e8e8;
+    border-radius: 14px;
+    padding: 16px;
+    margin: 12px 0;
+  }
+  .voice-block-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 12px;
+  }
+  .voice-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .btn-mic {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: none;
+    background: #1a1a2e;
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .btn-mic.recording {
+    background: #dc2626;
+    box-shadow: 0 0 0 0 rgba(220,38,38,0.4);
+    animation: mic-pulse 1.2s infinite;
+  }
+  @keyframes mic-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(220,38,38,0.4); }
+    70%  { box-shadow: 0 0 0 12px rgba(220,38,38,0); }
+    100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
+  }
+  .voice-hint {
+    font-size: 13px;
+    color: #888;
+    line-height: 1.4;
+  }
+  .voice-hint.active {
+    color: #dc2626;
+    font-weight: 500;
+  }
+  .voice-textarea {
+    width: 100%;
+    min-height: 80px;
+    border: 1.5px solid #e8e8e8;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    color: #1a1a2e;
+    resize: vertical;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+  }
+  .voice-textarea:focus { border-color: #1a1a2e; }
+  .voice-clear {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #aaa;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-family: inherit;
+  }
+  .voice-clear:hover { color: #dc2626; }
 
   /* Плавающая кнопка База */
   .btn-db-float {
@@ -685,7 +766,18 @@
     </div>
   </div>
   <div style="height:16px"></div>
-  <div class="btn-row">
+  <!-- Блок дополнительных замечаний с голосовым вводом -->
+  <div class="voice-block">
+    <div class="voice-block-title">💬 Дополнительные замечания</div>
+    <div class="voice-controls">
+      <button class="btn-mic" id="btn-mic" onclick="toggleVoice()">🎙️</button>
+      <div class="voice-hint" id="voice-hint">Нажмите микрофон и говорите — текст появится автоматически</div>
+    </div>
+    <textarea class="voice-textarea" id="voice-text" placeholder="Здесь появится текст. Можно также написать вручную..."></textarea>
+    <button class="voice-clear" onclick="clearVoiceText()">✕ Очистить</button>
+  </div>
+
+    <div class="btn-row">
     <button class="btn-main btn-secondary" onclick="showScreen('screen1')">← Назад</button>
     <button class="btn-main btn-success" id="btn-send" onclick="sendReport()" disabled>✅ Завершить</button>
   </div>
@@ -935,6 +1027,10 @@ async function sendReport() {
     if (motoHours) formData.append('moto_hours', motoHours);
   }
 
+  // Голосовые замечания
+  const voiceText = getVoiceText();
+  if (voiceText) formData.append('voice_notes', voiceText);
+
   // Доп. поля основной информации
   getActiveExtraFields().forEach(f => {
     const el = document.getElementById('extra-' + f.key);
@@ -1069,8 +1165,13 @@ function resetApp() {
   ['tt-tent','tt-iso','tt-ref'].forEach(id => {
     const el = $safe(id); if(el) el.classList.remove('active-ok');
   });
+  renderTmcSection();
   renderPhotoGrid();
   updateProgress();
+  // Сброс голосовых замечаний
+  const vtEl = document.getElementById('voice-text');
+  if (vtEl) vtEl.value = '';
+  if (voiceActive && voiceRecognition) voiceRecognition.stop();
   showScreen('screen0');
 }
 
@@ -1757,6 +1858,95 @@ document.getElementById('install-btn').addEventListener('click', () => {
     });
   }
 });
+// ===== Голосовой ввод замечаний =====
+let voiceRecognition = null;
+let voiceActive = false;
+
+function initVoice() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return null;
+  const r = new SpeechRecognition();
+  r.lang = 'ru-RU';
+  r.continuous = true;       // не останавливается между паузами
+  r.interimResults = true;   // показывает текст в процессе речи
+  r.maxAlternatives = 1;
+
+  let finalText = '';
+
+  r.onstart = () => {
+    voiceActive = true;
+    finalText = document.getElementById('voice-text').value.trim();
+    document.getElementById('btn-mic').classList.add('recording');
+    document.getElementById('voice-hint').textContent = '🔴 Запись... говорите';
+    document.getElementById('voice-hint').classList.add('active');
+  };
+
+  r.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        finalText += (finalText ? ' ' : '') + e.results[i][0].transcript;
+      } else {
+        interim += e.results[i][0].transcript;
+      }
+    }
+    document.getElementById('voice-text').value = finalText + (interim ? ' ' + interim : '');
+  };
+
+  r.onend = () => {
+    voiceActive = false;
+    document.getElementById('btn-mic').classList.remove('recording');
+    document.getElementById('voice-hint').textContent = 'Нажмите микрофон и говорите — текст появится автоматически';
+    document.getElementById('voice-hint').classList.remove('active');
+    // Сохраняем финальный текст
+    const el = document.getElementById('voice-text');
+    const val = el.value.trim();
+    if (val) el.value = val;
+  };
+
+  r.onerror = (e) => {
+    voiceActive = false;
+    document.getElementById('btn-mic').classList.remove('recording');
+    let msg = 'Нажмите микрофон и говорите — текст появится автоматически';
+    if (e.error === 'not-allowed') msg = '⚠️ Нет доступа к микрофону — разрешите в настройках браузера';
+    if (e.error === 'network')     msg = '⚠️ Нет интернета — голосовой ввод недоступен';
+    if (e.error === 'no-speech')   msg = 'Речь не распознана. Попробуйте ещё раз';
+    document.getElementById('voice-hint').textContent = msg;
+    document.getElementById('voice-hint').classList.remove('active');
+  };
+
+  return r;
+}
+
+function toggleVoice() {
+  if (!voiceRecognition) {
+    voiceRecognition = initVoice();
+  }
+  if (!voiceRecognition) {
+    alert('Голосовой ввод не поддерживается в этом браузере. Используйте Chrome на Android.');
+    return;
+  }
+  if (voiceActive) {
+    voiceRecognition.stop();
+  } else {
+    voiceRecognition.start();
+  }
+}
+
+function clearVoiceText() {
+  document.getElementById('voice-text').value = '';
+  if (voiceActive && voiceRecognition) voiceRecognition.stop();
+}
+
+function getVoiceText() {
+  const el = document.getElementById('voice-text');
+  return el ? el.value.trim() : '';
+}
+
+// Сбрасываем голосовое поле при новом осмотре
+const _origResetApp = resetApp;
+// Встроим сброс голоса в resetApp через патч
+
 </script>
 </body>
 </html>
