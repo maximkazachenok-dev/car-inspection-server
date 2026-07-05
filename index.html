@@ -429,7 +429,8 @@
     <input type="password" id="admin-password-input" placeholder="Пароль"
       style="width:100%;padding:12px 14px;border:2px solid #e8e8e8;border-radius:10px;font-size:16px;outline:none;box-sizing:border-box;margin-bottom:12px;font-family:inherit"
       onkeydown="if(event.key==='Enter')checkAdminPassword()">
-    <div id="admin-login-error" style="display:none;color:#dc2626;font-size:13px;margin-bottom:10px;text-align:center">Неверный пароль</div>
+    <div id="admin-login-hint" style="display:none;color:#1e40af;font-size:13px;margin-bottom:10px;text-align:center;background:#eff6ff;padding:8px;border-radius:8px">Первый вход: задайте пароль администратора</div>
+    <div id="admin-login-error" style="display:none;color:#dc2626;font-size:13px;margin-bottom:10px;text-align:center"></div>
     <button class="btn-main" onclick="checkAdminPassword()" style="margin-bottom:8px">Войти</button>
     <button class="btn-main btn-secondary" onclick="closeAdminLogin()">Отмена</button>
   </div>
@@ -804,6 +805,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 const SERVER_URL = 'https://web-production-1ff96.up.railway.app/submit';
+const APP_TOKEN  = 'f20d54d1b831968a95632a981c73277438a2dc287fe19ebef4a64b56b97cc36a'; // P0.2: синхронизировать с API_TOKEN в Railway
 
 let selectedType = '';
 const photos = {};
@@ -1071,7 +1073,11 @@ async function sendReport() {
   formData.append('photo_count', photoIndex);
 
   try {
-    const resp = await fetch(SERVER_URL, { method:'POST', body:formData });
+    const resp = await fetch(SERVER_URL, {
+      method: 'POST',
+      headers: { 'X-App-Token': APP_TOKEN },  // P0.2
+      body: formData
+    });
     const result = await resp.json();
     if (result.ok) showSuccess(fio, gos, dateStr, mileage);
     else showError(result.error || 'Неизвестная ошибка');
@@ -1169,9 +1175,10 @@ function resetApp() {
   renderPhotoGrid();
   updateProgress();
   // Сброс голосовых замечаний
+  voiceStored = '';
+  voiceActive = false;
   const vtEl = document.getElementById('voice-text');
   if (vtEl) vtEl.value = '';
-  voiceActive = false;
   showScreen('screen0');
 }
 
@@ -1664,10 +1671,10 @@ function renderAdminExtraList() {
 // ===== Администратор =====
 const ADMIN_PASSWORD_KEY = 'adminPassword';
 const ADMIN_SESSION_KEY  = 'adminSession';
-const DEFAULT_ADMIN_PASS = 'admin123';
+// P2.6: DEFAULT_ADMIN_PASS убран. При первом входе — создаём пароль.
 
 function getAdminPassword() {
-  return localStorage.getItem(ADMIN_PASSWORD_KEY) || DEFAULT_ADMIN_PASS;
+  return localStorage.getItem(ADMIN_PASSWORD_KEY) || null;
 }
 
 function openAdminPanel() {
@@ -1676,9 +1683,20 @@ function openAdminPanel() {
     showAdminPanel();
     return;
   }
-  // Иначе — запрашиваем пароль
+  // P2.6: если пароль ещё не задан — переходим сразу к созданию
+  if (!getAdminPassword()) {
+    document.getElementById('admin-login-modal').style.display = 'flex';
+    document.getElementById('admin-password-input').value = '';
+    document.getElementById('admin-login-error').style.display = 'none';
+    const hint = document.getElementById('admin-login-hint');
+    if (hint) hint.style.display = 'block';
+    setTimeout(() => document.getElementById('admin-password-input').focus(), 100);
+    return;
+  }
   document.getElementById('admin-password-input').value = '';
   document.getElementById('admin-login-error').style.display = 'none';
+  const hint = document.getElementById('admin-login-hint');
+  if (hint) hint.style.display = 'none';
   document.getElementById('admin-login-modal').style.display = 'flex';
   setTimeout(() => document.getElementById('admin-password-input').focus(), 100);
 }
@@ -1688,13 +1706,28 @@ function closeAdminLogin() {
 }
 
 function checkAdminPassword() {
-  const input = document.getElementById('admin-password-input').value;
-  if (input === getAdminPassword()) {
+  const input = document.getElementById('admin-password-input').value.trim();
+  const stored = getAdminPassword();
+  // P2.6: если пароль ещё не задан — первый вход, устанавливаем пароль
+  if (!stored) {
+    if (!input || input.length < 4) {
+      document.getElementById('admin-login-error').style.display = 'block';
+      document.getElementById('admin-login-error').textContent = 'Минимум 4 символа';
+      return;
+    }
+    localStorage.setItem(ADMIN_PASSWORD_KEY, input);
+    sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
+    closeAdminLogin();
+    showAdminPanel();
+    return;
+  }
+  if (input === stored) {
     sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
     closeAdminLogin();
     showAdminPanel();
   } else {
     document.getElementById('admin-login-error').style.display = 'block';
+    document.getElementById('admin-login-error').textContent = 'Неверный пароль';
     document.getElementById('admin-password-input').value = '';
     document.getElementById('admin-password-input').focus();
   }
@@ -1840,6 +1873,14 @@ const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 })();
 
 // ===== PWA =====
+// Предотвращаем закрытие PWA при отмене файлового пикера (iOS)
+(function() {
+  history.pushState(null, '', window.location.href);
+  window.addEventListener('popstate', function() {
+    history.pushState(null, '', window.location.href);
+  });
+})();
+
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
@@ -1859,7 +1900,8 @@ document.getElementById('install-btn').addEventListener('click', () => {
   }
 });
 // ===== Голосовой ввод замечаний =====
-let voiceActive = false;
+let voiceActive    = false;
+let voiceStored    = ''; // резерв: текст хранится здесь независимо от DOM
 
 function toggleVoice() {
   // Проверяем поддержку
@@ -1895,10 +1937,11 @@ function toggleVoice() {
     if (!transcript) return;
 
     const el = document.getElementById('voice-text');
-    if (!el) return;
-    const existing = el.value.trim();
-    // Добавляем к существующему тексту через пробел
-    el.value = existing ? existing + ' ' + transcript : transcript;
+    const existing = (el ? el.value.trim() : voiceStored);
+    const newText = existing ? existing + ' ' + transcript : transcript;
+    // Пишем в ОБА места — DOM и переменную (iOS иногда не читает DOM)
+    voiceStored = newText;
+    if (el) el.value = newText;
   };
 
   r.onend = () => {
@@ -1937,13 +1980,16 @@ function toggleVoice() {
 }
 
 function clearVoiceText() {
+  voiceStored = '';
   const el = document.getElementById('voice-text');
   if (el) el.value = '';
 }
 
 function getVoiceText() {
   const el = document.getElementById('voice-text');
-  return el ? el.value.trim() : '';
+  const domVal = el ? el.value.trim() : '';
+  // Возвращаем DOM-значение если есть, иначе из резервной переменной
+  return domVal || voiceStored;
 }
 </script>
 </body>

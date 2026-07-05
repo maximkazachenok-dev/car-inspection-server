@@ -8,15 +8,25 @@ from io import BytesIO
 from PIL import Image
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_limiter import Limiter          # P1.5: rate limiting
+from flask_limiter.util import get_remote_address
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=['https://maximkazachenok-dev.github.io'])  # P1.4: только фронтенд
+
+# P1.5: rate limiting — защита от злоупотреблений платным API
+# Gunicorn с 2 воркерами → фактически лимит x2 на воркер, допустимо для внутреннего приложения
+limiter = Limiter(app=app, key_func=get_remote_address, default_limits=["500 per day"])
 
 BOT_TOKEN      = os.environ.get('BOT_TOKEN', '')
 CHAT_ID        = os.environ.get('CHAT_ID', '')
 SUPABASE_URL   = os.environ.get('SUPABASE_URL', '')
 SUPABASE_KEY   = os.environ.get('SUPABASE_KEY', '')
 ANTHROPIC_KEY  = os.environ.get('ANTHROPIC_KEY', '')
+
+# Безопасность (P0.2, P0.3)
+API_TOKEN               = os.environ.get('API_TOKEN', '')
+TELEGRAM_WEBHOOK_SECRET = os.environ.get('TELEGRAM_WEBHOOK_SECRET', '')
 
 TELEGRAM_API  = f'https://api.telegram.org/bot{BOT_TOKEN}'
 SUPABASE_REST = f'{SUPABASE_URL}/rest/v1'
@@ -27,6 +37,24 @@ SUPABASE_HEADERS = {
     'Authorization': f'Bearer {SUPABASE_KEY}',
     'Content-Type': 'application/json',
 }
+
+def escape_markdown(text):
+    """P2.8: экранирует спецсимволы Markdown в пользовательском вводе."""
+    for ch in ['_', '*', '`', '[']:
+        text = text.replace(ch, '\\' + ch)
+    return text
+
+
+def is_valid_image(fb):
+    """P2.7: проверяет что байты являются корректным изображением."""
+    try:
+        from io import BytesIO
+        img = Image.open(BytesIO(fb))
+        img.verify()
+        return True
+    except Exception:
+        return False
+
 
 ZONE_ORDER = ['front', 'back', 'left', 'right', 'salon', 'sleep']
 ZONE_LABELS = {
@@ -232,7 +260,12 @@ def health():
 
 
 @app.route('/webhook', methods=['POST'])
+@limiter.limit('60 per hour')  # P1.5
 def webhook():
+    # P0.3: проверка подписи Telegram
+    secret = request.headers.get('X-Telegram-Bot-Api-Secret-Token', '')
+    if TELEGRAM_WEBHOOK_SECRET and secret != TELEGRAM_WEBHOOK_SECRET:
+        return jsonify({'ok': False}), 401
     try:
         data = request.json
         message = data.get('message', {})
@@ -271,10 +304,15 @@ def webhook():
 
 
 @app.route('/submit', methods=['POST'])
+@limiter.limit('30 per hour')  # P1.5
 def submit():
+    # P0.2: проверка токена клиента
+    client_token = request.headers.get('X-App-Token', '')
+    if not API_TOKEN or client_token != API_TOKEN:
+        return jsonify({'ok': False, 'error': 'Unauthorized'}), 401
     try:
-        fio      = request.form.get('fio', '').strip()
-        gosnomer = request.form.get('gosnomer', '').strip().upper()
+        fio      = escape_markdown(request.form.get('fio', '').strip())
+        gosnomer = escape_markdown(request.form.get('gosnomer', '').strip()).upper()
         type_    = request.form.get('type', '').strip()
         date     = request.form.get('date', '').strip()
         vehicle_type  = request.form.get('vehicle_type', 'Тягач').strip()
@@ -296,11 +334,15 @@ def submit():
             if ':' in item_str:
                 label, value = item_str.split(':', 1)
                 extra_fields_line += f'\n{label.strip()}: {value.strip()}'
+
+        # Голосовые замечания
+        voice_notes = request.form.get('voice_notes', '').strip()
+        voice_line = f'\n\n\U0001f5e3 *Замечания:* {voice_notes}' if voice_notes else ''
         trailer_type  = request.form.get('trailer_type', '').strip()
         moto_hours    = request.form.get('moto_hours', '').strip()
         mileage       = request.form.get('mileage', '').strip()
         check_doc     = request.form.get('check_doc_status', '').strip()
-        check_doc_cmt = request.form.get('check_doc_comment', '').strip()
+        check_doc_cmt = escape_markdown(request.form.get('check_doc_comment', '').strip())  # P2.8
 
         if not all([fio, gosnomer, type_, date]):
             return jsonify({'ok': False, 'error': 'Не все поля заполнены'}), 400
@@ -343,7 +385,7 @@ def submit():
                 if not file:
                     continue
                 fb = file.read()
-                if fb and len(fb) >= 100:
+                if fb and len(fb) >= 100 and is_valid_image(fb):  # P2.7
                     if len(fb) > 1500 * 1024:
                         fb = compress_image(fb)
                     label = request.form.get(f'photo_label_{i}', f'Фото {i+1}').strip()
@@ -357,7 +399,7 @@ def submit():
                 if not file:
                     continue
                 fb = file.read()
-                if fb and len(fb) >= 100:
+                if fb and len(fb) >= 100 and is_valid_image(fb):  # P2.7
                     if len(fb) > 1500 * 1024:
                         fb = compress_image(fb)
                     photo_bytes[ZONE_LABELS.get(zone, zone)] = fb
@@ -466,7 +508,7 @@ def submit():
                 print(f'Background error: {e}')
                 import traceback; traceback.print_exc()
 
-        extra_lines = extra_fields_line + trailer_line + doc_line + (('\n\n📦 *ТМЦ:*' + tmc_line) if tmc_line else '')
+        extra_lines = extra_fields_line + trailer_line + doc_line + (('\n\n📦 *ТМЦ:*' + tmc_line) if tmc_line else '') + voice_line
         threading.Thread(
             target=run_background,
             args=(photo_bytes, gosnomer, type_, date, mileage_str, fio, db_saved, extra_lines),
