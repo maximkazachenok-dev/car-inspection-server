@@ -1058,17 +1058,16 @@ async function sendReport() {
     if (comment) formData.append('check_doc_comment', comment);
   }
 
-  // Фото из динамического конфига
-  const activeZones = getActivePhotoZones();
+  // Фото из динамического конфига — сжимаем ПАРАЛЛЕЛЬНО (быстрее на Android)
+  const activeZones = getActivePhotoZones().filter(z => photos[z.key]);
+  const compressedResults = await Promise.all(
+    activeZones.map(zone => compressPhoto(photos[zone.key]))
+  );
   let photoIndex = 0;
-  for (const zone of activeZones) {
-    if (photos[zone.key]) {
-      const compressed = await compressPhoto(photos[zone.key]);
-      // Отправляем с понятным именем и порядковым ключом для сервера
-      formData.append('photo_' + photoIndex, compressed, `${zone.label}.jpg`);
-      formData.append('photo_label_' + photoIndex, zone.label);
-      photoIndex++;
-    }
+  for (let i = 0; i < activeZones.length; i++) {
+    formData.append('photo_' + photoIndex, compressedResults[i], `${activeZones[i].label}.jpg`);
+    formData.append('photo_label_' + photoIndex, activeZones[i].label);
+    photoIndex++;
   }
   formData.append('photo_count', photoIndex);
 
