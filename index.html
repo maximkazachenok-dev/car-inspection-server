@@ -1171,7 +1171,7 @@ function resetApp() {
   // Сброс голосовых замечаний
   const vtEl = document.getElementById('voice-text');
   if (vtEl) vtEl.value = '';
-  if (voiceActive && voiceRecognition) voiceRecognition.stop();
+  voiceActive = false;
   showScreen('screen0');
 }
 
@@ -1859,93 +1859,86 @@ document.getElementById('install-btn').addEventListener('click', () => {
   }
 });
 // ===== Голосовой ввод замечаний =====
-let voiceRecognition = null;
-let voiceActive     = false;
-let voiceBaseText   = ''; // текст в поле ДО начала текущей сессии записи
+let voiceActive = false;
 
-function initVoice() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) return null;
+function toggleVoice() {
+  // Проверяем поддержку
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    alert('Голосовой ввод не поддерживается в этом браузере.\nИспользуйте Chrome на Android.');
+    return;
+  }
 
-  const r = new SpeechRecognition();
-  r.lang           = 'ru-RU';
-  r.continuous     = false;  // одна фраза за раз — нет дублирования
-  r.interimResults = true;   // показываем текст в процессе речи
+  if (voiceActive) {
+    // Пользователь нажал повторно — просто ждём onend
+    return;
+  }
+
+  const r = new SR();
+  r.lang            = 'ru-RU';
+  r.continuous      = false; // одна фраза — нет дублирования
+  r.interimResults  = false; // только финальный результат — нет задвоений
   r.maxAlternatives = 1;
 
   r.onstart = () => {
     voiceActive = true;
-    // Фиксируем текст который уже был в поле — это база
-    voiceBaseText = (document.getElementById('voice-text').value || '').trim();
-    document.getElementById('btn-mic').classList.add('recording');
-    document.getElementById('voice-hint').textContent = '🔴 Идёт запись... говорите';
-    document.getElementById('voice-hint').classList.add('active');
+    const btn  = document.getElementById('btn-mic');
+    const hint = document.getElementById('voice-hint');
+    if (btn)  btn.classList.add('recording');
+    if (hint) { hint.textContent = '🔴 Запись... говорите'; hint.classList.add('active'); }
   };
 
   r.onresult = (e) => {
-    // Собираем только результаты текущего события (e.results — вся сессия)
-    // Итерируем от 0, т.к. continuous=false: за сессию одна фраза
-    let finalPart  = '';
-    let interimPart = '';
-    for (let i = 0; i < e.results.length; i++) {
-      if (e.results[i].isFinal) {
-        finalPart += e.results[i][0].transcript;
-      } else {
-        interimPart += e.results[i][0].transcript;
-      }
-    }
-    // Собираем: база + новое финальное + промежуточное (для отображения)
-    const sep = voiceBaseText && (finalPart || interimPart) ? ' ' : '';
-    document.getElementById('voice-text').value =
-      voiceBaseText + sep + finalPart + (interimPart ? (finalPart ? ' ' : '') + interimPart : '');
+    // Берём только первый финальный результат — дублей не будет
+    if (!e.results || !e.results[0] || !e.results[0].isFinal) return;
+    const transcript = e.results[0][0].transcript.trim();
+    if (!transcript) return;
+
+    const el = document.getElementById('voice-text');
+    if (!el) return;
+    const existing = el.value.trim();
+    // Добавляем к существующему тексту через пробел
+    el.value = existing ? existing + ' ' + transcript : transcript;
   };
 
   r.onend = () => {
     voiceActive = false;
-    // Убираем промежуточный текст — оставляем только финальный
-    const el  = document.getElementById('voice-text');
-    el.value  = el.value.trim();
-    document.getElementById('btn-mic').classList.remove('recording');
-    document.getElementById('voice-hint').textContent =
-      'Нажмите ещё раз чтобы продолжить запись';
-    document.getElementById('voice-hint').classList.remove('active');
+    const btn  = document.getElementById('btn-mic');
+    const hint = document.getElementById('voice-hint');
+    if (btn)  btn.classList.remove('recording');
+    if (hint) {
+      hint.textContent = 'Нажмите ещё раз чтобы продолжить запись';
+      hint.classList.remove('active');
+    }
+    // Объект r уничтожается автоматически — нет утечки памяти
   };
 
   r.onerror = (e) => {
     voiceActive = false;
-    document.getElementById('btn-mic').classList.remove('recording');
-    let msg = 'Нажмите микрофон и говорите';
-    if (e.error === 'not-allowed') msg = '⚠️ Нет доступа к микрофону — разрешите в настройках браузера';
-    if (e.error === 'network')     msg = '⚠️ Нет интернета — голосовой ввод недоступен';
-    if (e.error === 'no-speech')   msg = 'Речь не распознана — попробуйте ещё раз';
-    document.getElementById('voice-hint').textContent = msg;
-    document.getElementById('voice-hint').classList.remove('active');
+    const btn  = document.getElementById('btn-mic');
+    const hint = document.getElementById('voice-hint');
+    if (btn)  btn.classList.remove('recording');
+    if (hint) hint.classList.remove('active');
+    const msgs = {
+      'not-allowed': '⚠️ Нет доступа к микрофону — разрешите в настройках',
+      'network':     '⚠️ Нет интернета — голосовой ввод недоступен',
+      'no-speech':   'Речь не распознана. Попробуйте ещё раз',
+    };
+    if (hint) hint.textContent = msgs[e.error] || 'Нажмите микрофон и говорите';
   };
 
-  return r;
-}
-
-function toggleVoice() {
-  if (!voiceRecognition) {
-    voiceRecognition = initVoice();
-  }
-  if (!voiceRecognition) {
-    alert('Голосовой ввод не поддерживается. Используйте Chrome на Android.');
-    return;
-  }
-  if (voiceActive) {
-    voiceRecognition.stop();
-  } else {
-    // Каждый раз создаём новый экземпляр — это надёжнее на Android Chrome
-    voiceRecognition = initVoice();
-    voiceRecognition.start();
+  // Запускаем — новый объект на каждое нажатие, старый GC уберёт
+  try {
+    r.start();
+  } catch(e) {
+    voiceActive = false;
+    console.warn('Voice start error:', e);
   }
 }
 
 function clearVoiceText() {
-  document.getElementById('voice-text').value = '';
-  voiceBaseText = '';
-  if (voiceActive && voiceRecognition) voiceRecognition.stop();
+  const el = document.getElementById('voice-text');
+  if (el) el.value = '';
 }
 
 function getVoiceText() {
