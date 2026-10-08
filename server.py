@@ -12,7 +12,12 @@ from flask_limiter import Limiter          # P1.5: rate limiting
 from flask_limiter.util import get_remote_address
 
 app = Flask(__name__)
-CORS(app, origins=['https://maximkazachenok-dev.github.io'])  # P1.4: только фронтенд
+# P1.4: только фронтенд. Адрес сайта задаётся переменной ALLOWED_ORIGINS в Railway
+# (несколько адресов — через запятую), например: https://username.github.io
+ALLOWED_ORIGINS = [o.strip().rstrip('/').lower() for o in
+                   os.environ.get('ALLOWED_ORIGINS', 'https://maximkazachenok-dev.github.io').split(',')
+                   if o.strip()]
+CORS(app, origins=ALLOWED_ORIGINS)
 
 # P1.5: rate limiting — защита от злоупотреблений платным API
 # Gunicorn с 2 воркерами → фактически лимит x2 на воркер, допустимо для внутреннего приложения
@@ -32,9 +37,18 @@ TELEGRAM_API  = f'https://api.telegram.org/bot{BOT_TOKEN}'
 SUPABASE_REST = f'{SUPABASE_URL}/rest/v1'
 SUPABASE_STOR = f'{SUPABASE_URL}/storage/v1'
 
+def supabase_auth_headers():
+    """Новые ключи Supabase (sb_secret_...) передаются только в apikey —
+    в Authorization: Bearer Supabase их отклоняет (Invalid JWT).
+    Старые JWT-ключи (eyJ...) передаются в обоих заголовках, как раньше."""
+    headers = {'apikey': SUPABASE_KEY}
+    if not SUPABASE_KEY.startswith('sb_'):
+        headers['Authorization'] = f'Bearer {SUPABASE_KEY}'
+    return headers
+
+
 SUPABASE_HEADERS = {
-    'apikey': SUPABASE_KEY,
-    'Authorization': f'Bearer {SUPABASE_KEY}',
+    **supabase_auth_headers(),
     'Content-Type': 'application/json',
 }
 
@@ -107,8 +121,7 @@ def compress_image(img_bytes, max_size_kb=3000, max_dimension=1920):
 def upload_photo_to_supabase(file_bytes, filename):
     url = f'{SUPABASE_STOR}/object/inspection-photos/{filename}'
     headers = {
-        'apikey': SUPABASE_KEY,
-        'Authorization': f'Bearer {SUPABASE_KEY}',
+        **supabase_auth_headers(),
         'Content-Type': 'image/jpeg',
     }
     resp = requests.post(url, data=file_bytes, headers=headers, timeout=30)
